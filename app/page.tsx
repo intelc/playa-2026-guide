@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Share2 } from "lucide-react";
 
 type Lang = "en" | "zh";
 
@@ -494,7 +495,7 @@ function EventCard({ event, lang, day, saved, sharing, onSave, onShare }: { even
         <div className="card-topline">
           <span className="category-pill">{lang === "en" ? meta.en : meta.zh}</span>
           <div className="card-actions">
-            <button className="share-button" onClick={onShare} aria-label={sharing ? copy[lang].generating : copy[lang].share} disabled={sharing}>{sharing ? "…" : "↗"}</button>
+            <button className="share-button" onClick={onShare} aria-label={sharing ? copy[lang].generating : copy[lang].share} disabled={sharing}>{sharing ? "…" : <Share2 aria-hidden="true" />}</button>
             <button className={`save-button ${saved ? "is-saved" : ""}`} onClick={onSave} aria-label={saved ? copy[lang].remove : copy[lang].save}>
               {saved ? "★" : "☆"}
             </button>
@@ -865,7 +866,7 @@ export default function Home() {
           <div className="plan-footer">
             <button onClick={clearSaved} disabled={!savedEvents.length}>{t.clearAll}</button>
             <div className="plan-footer-actions">
-              <button className="share-plan" onClick={sharePlanImage} disabled={!savedEvents.length || sharingPlan}>{sharingPlan ? t.generatingPlan : t.sharePlan} ↗</button>
+              <button className="share-plan" onClick={sharePlanImage} disabled={!savedEvents.length || sharingPlan}>{sharingPlan ? t.generatingPlan : <><Share2 aria-hidden="true" />{t.sharePlan}</>}</button>
               <button className="copy-plan" onClick={copyPlan} disabled={!savedEvents.length}>{copied ? t.copied : t.copyList}</button>
             </div>
           </div>
@@ -882,7 +883,7 @@ export default function Home() {
             <img className="share-preview" src={shareAsset.url} alt={`${shareAsset.title} share card`} />
             <textarea className="share-caption" value={shareAsset.caption} readOnly aria-label={t.copyCaption} />
             <div className="share-primary-actions">
-              <button className="share-native" onClick={shareFallbackAsset}>↗ {t.shareNow}</button>
+              <button className="share-native" onClick={shareFallbackAsset}><Share2 aria-hidden="true" />{t.shareNow}</button>
               <a className="share-download" href={shareAsset.url} download={shareAsset.filename}>↓ {t.saveImage}</a>
             </div>
             <button className="share-copy" onClick={copyShareCaption}>{captionCopied ? `${t.captionCopied} ✓` : t.copyCaption}</button>

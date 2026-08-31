@@ -114,7 +114,8 @@ a { color: inherit; text-decoration: none; }
 .category-pill { font-family: var(--font-geist-mono); font-size: 9px; letter-spacing: .11em; text-transform: uppercase; color: #756e63; }
 .card-actions { display: flex; align-items: center; gap: 6px; }
 .share-button, .save-button { width: 35px; height: 35px; border-radius: 50%; border: 1px solid var(--line); background: transparent; cursor: pointer; line-height: 1; }
-.share-button { font-size: 16px; font-weight: 700; }
+.share-button { display: grid; place-items: center; font-size: 16px; font-weight: 700; }
+.share-button svg { width: 15px; height: 15px; stroke-width: 1.9; }
 .save-button { font-size: 21px; }
 .share-button:disabled { cursor: wait; opacity: .55; }
 .share-button:hover { background: rgba(23,23,19,.06); }
@@ -188,7 +189,8 @@ footer a { border: 1px solid rgba(255,255,255,.35); border-radius: 999px; paddin
 .plan-footer button { border: 0; background: transparent; padding: 12px 0; cursor: pointer; }
 .plan-footer button:disabled { opacity: .35; cursor: default; }
 .plan-footer-actions { display: flex; align-items: center; gap: 8px; }
-.plan-footer .share-plan { padding: 12px 18px; border-radius: 999px; background: var(--ember); color: white; }
+.plan-footer .share-plan { padding: 12px 18px; display: inline-flex; align-items: center; gap: 7px; border-radius: 999px; background: var(--ember); color: white; }
+.plan-footer .share-plan svg { width: 14px; height: 14px; }
 .plan-footer .copy-plan { padding: 12px 18px; border-radius: 999px; background: var(--ink); color: white; }
 
 .share-modal { position: fixed; z-index: 80; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(23,23,19,.48); backdrop-filter: blur(8px); }
@@ -201,7 +203,8 @@ footer a { border: 1px solid rgba(255,255,255,.35); border-radius: 999px; paddin
 .share-caption { width: 100%; min-height: 96px; resize: none; padding: 11px; border: 1px solid var(--line); border-radius: 12px; outline: 0; background: rgba(255,255,255,.52); color: var(--ink); font: 11px/1.5 var(--font-geist-sans), "PingFang SC", sans-serif; }
 .share-primary-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
 .share-primary-actions button, .share-primary-actions a, .share-copy { min-height: 46px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; cursor: pointer; font-size: 12px; font-weight: 700; }
-.share-native { border: 0; background: var(--ink); color: white; }
+.share-native { gap: 7px; border: 0; background: var(--ink); color: white; }
+.share-native svg { width: 15px; height: 15px; }
 .share-download { border: 0; background: var(--ember); color: white; }
 .share-copy { width: 100%; margin-top: 8px; border: 1px solid var(--line); background: transparent; }
 
