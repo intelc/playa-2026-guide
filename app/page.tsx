@@ -258,12 +258,25 @@ async function createEventShareCard(event: EventItem, lang: Lang, selectedDay: n
   context.beginPath(); context.ellipse(0, 0, 150, 56, 0, 0, Math.PI * 2); context.stroke();
   context.restore();
 
-  context.fillStyle = "rgba(23,23,19,.72)";
-  context.beginPath(); context.roundRect(padding, 48, 246, 52, 26); context.fill();
+  const whenText = `${days[shownDay][lang === "en" ? 0 : 1]} · ${days[shownDay][2]} · ${event.times[shownDay]}`;
+  const headerPanelWidth = 560;
+  context.fillStyle = "rgba(23,23,19,.78)";
+  context.beginPath(); context.roundRect(padding, 48, headerPanelWidth, 150, 28); context.fill();
+  context.fillStyle = "rgba(255,255,255,.68)";
+  context.font = `700 17px ${font}`;
+  context.fillText(lang === "en" ? "WHEN" : "时间", padding + 24, 78);
   context.fillStyle = "#ffffff";
-  context.font = `700 25px ${font}`;
-  context.textBaseline = "middle";
-  context.fillText("PLAYA / 2026", padding + 22, 75);
+  context.font = `750 26px ${font}`;
+  context.fillText(truncateCanvasText(context, whenText, headerPanelWidth - 48), padding + 24, 108);
+  context.strokeStyle = "rgba(255,255,255,.22)";
+  context.lineWidth = 2;
+  context.beginPath(); context.moveTo(padding + 24, 124); context.lineTo(padding + headerPanelWidth - 24, 124); context.stroke();
+  context.fillStyle = "rgba(255,255,255,.68)";
+  context.font = `700 17px ${font}`;
+  context.fillText(lang === "en" ? "WHERE" : "地点", padding + 24, 151);
+  context.fillStyle = "#ffffff";
+  context.font = `750 26px ${font}`;
+  context.fillText(truncateCanvasText(context, location, headerPanelWidth - 48), padding + 24, 181);
 
   const categoryLabel = lang === "en" ? meta.en.toUpperCase() : meta.zh;
   context.font = `700 24px ${font}`;
@@ -271,6 +284,7 @@ async function createEventShareCard(event: EventItem, lang: Lang, selectedDay: n
   context.fillStyle = "rgba(23,23,19,.72)";
   context.beginPath(); context.roundRect(width - padding - categoryWidth, 48, categoryWidth, 52, 26); context.fill();
   context.fillStyle = "#ffffff";
+  context.textBaseline = "middle";
   context.fillText(categoryLabel, width - padding - categoryWidth + 22, 75);
   context.textBaseline = "alphabetic";
 
@@ -282,48 +296,33 @@ async function createEventShareCard(event: EventItem, lang: Lang, selectedDay: n
   context.font = `700 25px ${font}`;
   context.fillText(lang === "en" ? "A MOMENT IN THE DUST" : "尘土里的一场相遇", padding, 500);
 
-  let titleSize = 72;
+  let titleSize = 78;
   let titleLines: string[] = [];
   do {
     context.font = `800 ${titleSize}px ${font}`;
     titleLines = wrapCanvasText(context, event.title, width - padding * 2, lang);
-    if (titleLines.length <= 3) break;
+    if (titleLines.length <= 4) break;
     titleSize -= 5;
   } while (titleSize >= 48);
-  const titleWasTruncated = titleLines.length > 3;
-  titleLines = titleLines.slice(0, 3);
+  const titleWasTruncated = titleLines.length > 4;
+  titleLines = titleLines.slice(0, 4);
   if (titleWasTruncated) {
-    let finalLine = titleLines[2].replace(/[.…]+$/, "");
+    let finalLine = titleLines[3].replace(/[.…]+$/, "");
     while (finalLine && context.measureText(`${finalLine}…`).width > width - padding * 2) finalLine = finalLine.slice(0, -1);
-    titleLines[2] = `${finalLine}…`;
+    titleLines[3] = `${finalLine}…`;
   }
   context.fillStyle = "#171713";
   const titleLineHeight = titleSize * 1.08;
   titleLines.forEach((line, index) => context.fillText(line, padding, 580 + index * titleLineHeight));
 
-  let contentY = 580 + titleLines.length * titleLineHeight + 18;
+  let contentY = 580 + titleLines.length * titleLineHeight + 22;
   context.fillStyle = "#655e52";
   context.font = `400 29px ${font}`;
-  const descriptionLines = wrapCanvasText(context, event.description || "—", width - padding * 2, lang).slice(0, 3);
-  descriptionLines.forEach((line, index) => context.fillText(line, padding, contentY + index * 42));
-  contentY += descriptionLines.length * 42 + 40;
-
-  context.strokeStyle = "rgba(23,23,19,.16)";
-  context.lineWidth = 2;
-  context.beginPath(); context.moveTo(padding, contentY); context.lineTo(width - padding, contentY); context.stroke();
-  contentY += 50;
-
-  context.fillStyle = "#847c70";
-  context.font = `700 20px ${font}`;
-  context.fillText(lang === "en" ? "WHEN" : "时间", padding, contentY);
-  context.fillText(lang === "en" ? "WHERE" : "地点", 520, contentY);
-  context.fillStyle = "#171713";
-  context.font = `700 31px ${font}`;
-  context.fillText(`${days[shownDay][lang === "en" ? 0 : 1]} · ${days[shownDay][2]} · ${event.times[shownDay]}`, padding, contentY + 44);
-  const locationLines = wrapCanvasText(context, location, width - 520 - padding, lang).slice(0, 2);
-  locationLines.forEach((line, index) => context.fillText(line, 520, contentY + 44 + index * 38));
-
   const footerY = height - 170;
+  const availableDescriptionLines = Math.max(1, Math.min(5, Math.floor((footerY - contentY - 48) / 42)));
+  const descriptionLines = wrapCanvasText(context, event.description || "—", width - padding * 2, lang).slice(0, availableDescriptionLines);
+  descriptionLines.forEach((line, index) => context.fillText(line, padding, contentY + index * 42));
+
   context.strokeStyle = "rgba(23,23,19,.16)";
   context.beginPath(); context.moveTo(padding, footerY); context.lineTo(width - padding, footerY); context.stroke();
   context.fillStyle = "#171713";
