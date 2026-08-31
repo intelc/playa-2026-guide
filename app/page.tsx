@@ -89,7 +89,7 @@ const copy = {
     saved: "saved",
     makeMyList: "Make my Playa list",
     copyToAgent: "Copy to my agent",
-    agentCopied: "Agent context copied!",
+    agentCopied: "Agent context + saved events copied!",
     agentCopiedShort: "Copied!",
     myPlaya: "My Playa",
     planHint: "Your saved events, arranged across the week. Stored only in this browser.",
@@ -144,7 +144,7 @@ const copy = {
     saved: "已收藏",
     makeMyList: "制作我的 Playa 清单",
     copyToAgent: "复制给我的 Agent",
-    agentCopied: "已复制 Agent 上下文！",
+    agentCopied: "已复制 Agent 上下文和收藏活动！",
     agentCopiedShort: "已复制！",
     myPlaya: "我的 Playa",
     planHint: "收藏的活动按日期排好，只保存在此浏览器中。",
@@ -283,7 +283,7 @@ async function copyToClipboard(text: string) {
   textarea.remove();
 }
 
-function createAgentContext({ lang, query, category, day }: { lang: Lang; query: string; category: string; day: number }) {
+function createAgentContext({ lang, query, category, day, savedEvents, now }: { lang: Lang; query: string; category: string; day: number; savedEvents: EventItem[]; now: number }) {
   const endpoint = new URL(publicSearchApiUrl);
   endpoint.searchParams.set("lang", lang);
   if (query.trim()) endpoint.searchParams.set("q", query.trim());
@@ -291,6 +291,31 @@ function createAgentContext({ lang, query, category, day }: { lang: Lang; query:
   if (day >= 0) endpoint.searchParams.set("day", String(day));
   const categoryLabel = categoryMeta[category] ? `${categoryMeta[category].en} / ${categoryMeta[category].zh}` : category;
   const dayLabel = day >= 0 ? `${days[day][0]} / ${days[day][1]} (${days[day][2]})` : "All days / 全部日期";
+  const orderedSavedEvents = [...savedEvents].sort((left, right) => {
+    const leftDay = eventDayIndex(left, -1, now);
+    const rightDay = eventDayIndex(right, -1, now);
+    const startMinute = (event: EventItem, dayIndex: number) => {
+      const match = event.times[dayIndex]?.match(/^(\d{2}):(\d{2})/);
+      return match ? Number(match[1]) * 60 + Number(match[2]) : 0;
+    };
+    return leftDay * dayMinutes + startMinute(left, leftDay) - (rightDay * dayMinutes + startMinute(right, rightDay));
+  });
+  const savedSection = orderedSavedEvents.length
+    ? orderedSavedEvents.map((event, index) => {
+      const categoryKey = normalizeCategory(event.type);
+      const meta = categoryMeta[categoryKey] || categoryMeta.othr;
+      const schedule = event.times.flatMap((time, dayIndex) => time && time !== "-"
+        ? [`${days[dayIndex][lang === "en" ? 0 : 1]} ${days[dayIndex][2]} · ${time}`]
+        : []).join("; ");
+      const location = event.where !== "-" ? event.where : event.camp;
+      return `${index + 1}. ${event.title}
+   - When / 时间 (BRC): ${schedule}
+   - Where / 地点: ${location}
+   - Camp / 营地: ${event.camp}
+   - Category / 分类: ${meta.en} / ${meta.zh}
+   - Source / 来源: ${event.link}`;
+    }).join("\n\n")
+    : "None saved yet / 暂无收藏活动";
 
   return `You are helping someone explore Playa 2026, a bilingual Burning Man / Black Rock City event guide.
 
@@ -310,6 +335,11 @@ Current visitor context / 当前访客筛选:
 - Day / 日期: ${dayLabel}
 - Category / 分类: ${categoryLabel}
 - Ready-to-use search URL: ${endpoint.toString()}
+
+Saved Playa events / 已收藏的 Playa 活动 (${orderedSavedEvents.length}):
+${savedSection}
+
+Treat the saved events as the visitor's explicit interests. Preserve them when planning a schedule or making recommendations unless the visitor asks to remove or replace them.
 
 When suggesting an event, preserve its title, time, and location. Cite the event's event.link as the live source for that event, and link back to ${websiteUrl} for discovery. Times and locations can shift on playa, so encourage people to open the event link before heading out. Reply in the visitor's selected language unless they ask otherwise.`;
 }
@@ -795,7 +825,7 @@ export default function Home() {
   }
 
   async function copyAgentContext() {
-    await copyToClipboard(createAgentContext({ lang, query, category, day }));
+    await copyToClipboard(createAgentContext({ lang, query, category, day, savedEvents, now: clockNow }));
     setAgentCopied(true);
     window.setTimeout(() => setAgentCopied(false), 1800);
   }
