@@ -33,7 +33,7 @@ async function fetchSheet(sheet) {
 async function getCatalog() {
   if (cache && Date.now() - cache.loadedAt < 15 * 60 * 1000) return cache;
   const [english, chinese] = await Promise.all([fetchSheet("English"), fetchSheet("Chinese")]);
-  cache = { english, chinese: new Map(chinese.map((event) => [event.uid, event])), loadedAt: Date.now() };
+  cache = { english, chinese, loadedAt: Date.now() };
   return cache;
 }
 
@@ -41,12 +41,7 @@ export default async (request) => {
   try {
     const lang = new URL(request.url).searchParams.get("lang") === "zh" ? "zh" : "en";
     const catalog = await getCatalog();
-    const events = lang === "zh"
-      ? catalog.english.map((event) => {
-          const translated = catalog.chinese.get(event.uid);
-          return translated ? { ...event, ...translated, times: event.times } : event;
-        })
-      : catalog.english;
+    const events = lang === "zh" ? catalog.chinese : catalog.english;
     return new Response(JSON.stringify({ events, count: events.length }), {
       headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=300, s-maxage=900, stale-while-revalidate=86400" },
     });

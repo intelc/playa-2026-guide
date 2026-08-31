@@ -304,7 +304,7 @@ export default function Home() {
           <p className="hero-intro">{t.intro}</p>
           <div className="source-stamp"><span />{t.updated}</div>
           <dl className="stats">
-            <div><dt>3,744</dt><dd>{t.events}</dd></div>
+            <div><dt>{loading ? "—" : events.length.toLocaleString()}</dt><dd>{t.events}</dd></div>
             <div><dt>09</dt><dd>{t.days}</dd></div>
             <div><dt>08</dt><dd>{t.languages}</dd></div>
             <div><dt>{String(saved.size).padStart(2, "0")}</dt><dd>{t.saved}</dd></div>

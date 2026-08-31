@@ -54,12 +54,7 @@ export async function GET(request: NextRequest) {
     let events: EventItem[] = english;
 
     if (lang === "zh") {
-      const chinese = await fetchSheet("Chinese");
-      const translations = new Map(chinese.map((event) => [event.uid, event]));
-      events = english.map((event) => {
-        const translated = translations.get(event.uid);
-        return translated ? { ...event, ...translated, times: event.times } : event;
-      });
+      events = await fetchSheet("Chinese");
     }
 
     return NextResponse.json({ events, count: events.length }, {
