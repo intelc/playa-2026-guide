@@ -496,14 +496,9 @@ function EventCard({ event, lang, day, saved, sharing, onSave, onShare }: { even
 
   return (
     <article className={`event-card category-${category}`}>
-      <div className="card-visual" aria-hidden="true">
-        <span className="visual-mark">{meta.mark}</span>
-        <span className="visual-orbit" />
-        <span className="visual-category">{lang === "en" ? meta.en : meta.zh}</span>
-      </div>
       <div className="card-body">
         <div className="card-topline">
-          <span className="category-pill">{lang === "en" ? meta.en : meta.zh}</span>
+          <span className="category-pill"><span aria-hidden="true">{meta.mark}</span>{lang === "en" ? meta.en : meta.zh}</span>
           <div className="card-actions">
             <button className="share-button" onClick={onShare} aria-label={sharing ? copy[lang].generating : copy[lang].share} disabled={sharing}>{sharing ? "…" : <Share2 aria-hidden="true" />}</button>
             <button className={`save-button ${saved ? "is-saved" : ""}`} onClick={onSave} aria-label={saved ? copy[lang].remove : copy[lang].save}>
