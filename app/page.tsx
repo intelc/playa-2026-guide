@@ -88,13 +88,13 @@ const copy = {
     remove: "Remove saved event",
     share: "Share event",
     shareTitle: "Share this event",
-    shareHint: "Use your phone’s share sheet to save the card to Photos or send it to friends.",
-    shareNow: "Share card",
+    shareHint: "Share the image itself. Copy the caption separately when you want to add text.",
+    shareNow: "Share image",
     saveImage: "Save image",
     copyCaption: "Copy caption",
     captionCopied: "Copied",
     generating: "Generating share card",
-    sharePlan: "Share image",
+    sharePlan: "Share list",
     sharePlanTitle: "Share My Playa",
     generatingPlan: "Generating…",
     footerTitle: "Built for serendipity, not certainty.",
@@ -136,13 +136,13 @@ const copy = {
     remove: "取消收藏",
     share: "分享活动",
     shareTitle: "分享这场活动",
-    shareHint: "通过手机分享菜单保存到相册，或直接发送给朋友。",
-    shareNow: "分享卡片",
+    shareHint: "直接分享图片文件；如需配文，请另行复制文案。",
+    shareNow: "分享图片",
     saveImage: "保存到相册",
     copyCaption: "复制文案",
     captionCopied: "已复制",
     generating: "正在生成分享卡片",
-    sharePlan: "分享图片",
+    sharePlan: "分享清单",
     sharePlanTitle: "分享我的 Playa",
     generatingPlan: "生成中……",
     footerTitle: "为偶遇而做，不为确定而生。",
@@ -211,6 +211,15 @@ async function copyToClipboard(text: string) {
   textarea.select();
   document.execCommand("copy");
   textarea.remove();
+}
+
+function downloadShareAsset(asset: ShareAsset) {
+  const link = document.createElement("a");
+  link.href = asset.url;
+  link.download = asset.filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
 }
 
 async function createEventShareCard(event: EventItem, lang: Lang, selectedDay: number) {
@@ -713,12 +722,12 @@ export default function Home() {
       const blob = await fetch(shareAsset.url).then((response) => response.blob());
       const file = new File([blob], shareAsset.filename, { type: "image/png" });
       if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ title: shareAsset.title, text: shareAsset.caption, files: [file] });
+        await navigator.share({ files: [file] });
       } else {
-        await copyShareCaption();
+        downloadShareAsset(shareAsset);
       }
     } catch (error) {
-      if (!(error instanceof DOMException && error.name === "AbortError")) await copyShareCaption();
+      if (!(error instanceof DOMException && error.name === "AbortError")) downloadShareAsset(shareAsset);
     }
   }
 
