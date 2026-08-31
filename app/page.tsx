@@ -330,29 +330,31 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="day-strip" role="group" aria-label="Filter by day">
-          <button className={day === -1 ? "active" : ""} onClick={() => setDay(-1)}><strong>{t.allDays}</strong><small>8.30 — 9.07</small></button>
-          {days.map((item, index) => (
-            <button key={item[2]} className={day === index ? "active" : ""} onClick={() => setDay(index)}>
-              <strong>{item[lang === "en" ? 0 : 1]}</strong><small>{item[2]}</small>
-            </button>
-          ))}
-        </div>
-
-        <div className="filter-row">
-          {categoryOrder.map((key) => {
-            const meta = categoryMeta[key];
-            return (
-              <button key={key} className={category === key ? "active" : ""} onClick={() => setCategory(key)}>
-                <span>{meta.mark}</span>{lang === "en" ? meta.en : meta.zh}<em>{counts[key] || 0}</em>
+        <div className="filter-stack">
+          <div className="day-strip" role="group" aria-label="Filter by day">
+            <button className={day === -1 ? "active" : ""} onClick={() => setDay(-1)}><strong>{t.allDays}</strong><small>8.30 — 9.07</small></button>
+            {days.map((item, index) => (
+              <button key={item[2]} className={day === index ? "active" : ""} onClick={() => setDay(index)}>
+                <strong>{item[lang === "en" ? 0 : 1]}</strong><small>{item[2]}</small>
               </button>
-            );
-          })}
-        </div>
+            ))}
+          </div>
 
-        <div className="mobile-search">
-          <span aria-hidden="true">⌕</span>
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t.search} aria-label={t.search} />
+          <div className="filter-row">
+            {categoryOrder.map((key) => {
+              const meta = categoryMeta[key];
+              return (
+                <button key={key} className={category === key ? "active" : ""} onClick={() => setCategory(key)}>
+                  <span>{meta.mark}</span>{lang === "en" ? meta.en : meta.zh}<em>{counts[key] || 0}</em>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mobile-search">
+            <span aria-hidden="true">⌕</span>
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t.search} aria-label={t.search} />
+          </div>
         </div>
 
         <div className="results-line"><span>{t.showing} <strong>{filtered.length.toLocaleString()}</strong> {t.matches}</span><i /></div>
@@ -365,8 +367,15 @@ export default function Home() {
           <div className="empty-state"><span>✦</span><p>{t.empty}</p><button onClick={resetFilters}>{t.reset}</button></div>
         ) : (
           <>
-            <div className="event-grid">
+            <div className="event-grid desktop-event-grid">
               {filtered.slice(0, limit).map((event) => <EventCard key={event.uid} event={event} lang={lang} day={day} saved={saved.has(event.uid)} onSave={() => toggleSaved(event.uid)} />)}
+            </div>
+            <div className="mobile-event-grid">
+              {[0, 1].map((column) => (
+                <div className="mobile-event-column" key={column}>
+                  {filtered.slice(0, limit).filter((_, index) => index % 2 === column).map((event) => <EventCard key={event.uid} event={event} lang={lang} day={day} saved={saved.has(event.uid)} onSave={() => toggleSaved(event.uid)} />)}
+                </div>
+              ))}
             </div>
             {limit < filtered.length && <button className="load-more" onClick={() => setLimit(limit + 36)}>{t.loadMore}<span>{Math.min(36, filtered.length - limit)}</span></button>}
           </>
