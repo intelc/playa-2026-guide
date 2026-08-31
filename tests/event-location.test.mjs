@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getEventAddressProvenance, getEventLocationDisplay, getEventPlayaAddress, getOfficialCampCoordinates, getOfficialCampMapUrl } from "../lib/event-location.ts";
+import { getEventAddressProvenance, getEventLocationDisplay, getEventPlayaAddress, getIBurnMapPinUrl, getOfficialCampCoordinates, getOfficialCampMapUrl } from "../lib/event-location.ts";
 
 const officialCampLocation = {
   source: "camp",
@@ -22,6 +22,14 @@ test("creates Apple and Google map links for a validated official 2026 camp poin
     getOfficialCampMapUrl(officialCampLocation, "apple"),
     "https://maps.apple.com/?ll=40.7864,-119.2064&z=18",
   );
+});
+
+test("creates an iBurn map-pin link with a clean event title", () => {
+  assert.equal(
+    getIBurnMapPinUrl(officialCampLocation, "  Sunrise   Yoga & Tea  "),
+    "https://iburnapp.com/pin?lat=40.7864&lng=-119.2064&title=Sunrise+Yoga+%26+Tea",
+  );
+  assert.equal(getIBurnMapPinUrl(undefined, "Sunrise Yoga"), null);
 });
 
 test("does not link unlocated, out-of-year, or malformed API location data", () => {

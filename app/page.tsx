@@ -12,7 +12,7 @@ import {
   type SharedPlanPayload,
 } from "@/lib/shared-plan";
 import { buildSharedEventMetadata, buildSharedPlanMetadata } from "@/lib/share-metadata";
-import { getEventAddressProvenance, getEventLocationDisplay, getOfficialCampCoordinates, getOfficialCampMapUrl, type EventLocation } from "../lib/event-location";
+import { getEventAddressProvenance, getEventLocationDisplay, getIBurnMapPinUrl, getOfficialCampCoordinates, getOfficialCampMapUrl, type EventLocation } from "../lib/event-location";
 
 type Lang = "en" | "zh";
 
@@ -155,6 +155,7 @@ const copy = {
     viewMap: "View location",
     appleMaps: "Apple Maps",
     googleMaps: "Google Maps",
+    iburn: "Send to iBurn",
     location: "Location",
     savedOnly: "Saved only",
     save: "Save event",
@@ -228,6 +229,7 @@ const copy = {
     viewMap: "查看位置",
     appleMaps: "Apple 地图",
     googleMaps: "Google 地图",
+    iburn: "发送到 iBurn",
     location: "地点",
     savedOnly: "只看收藏",
     save: "收藏活动",
@@ -924,6 +926,7 @@ function EventCard({ event, lang, day, now, saved, sharing, onSave, onPreview, o
   const addressProvenance = formatAddressProvenance(event, lang);
   const appleMapUrl = getOfficialCampMapUrl(event.location, "apple");
   const googleMapUrl = getOfficialCampMapUrl(event.location, "google");
+  const iBurnUrl = getIBurnMapPinUrl(event.location, event.title);
 
   return (
     <article className={`event-card category-${category} ${happened ? "is-past" : ""}`}>
@@ -949,6 +952,7 @@ function EventCard({ event, lang, day, now, saved, sharing, onSave, onPreview, o
               <a href={event.link} target="_blank" rel="noreferrer">{copy[lang].open} ↗</a>
               {appleMapUrl && <a className="location-link" href={appleMapUrl} target="_blank" rel="noopener noreferrer">{copy[lang].appleMaps} ↗</a>}
               {googleMapUrl && <a className="location-link" href={googleMapUrl} target="_blank" rel="noopener noreferrer">{copy[lang].googleMaps} ↗</a>}
+              {iBurnUrl && <a className="location-link" href={iBurnUrl} target="_blank" rel="noopener noreferrer">{copy[lang].iburn} ↗</a>}
             </div>
             <span>
               <em>{lang === "en" ? meta.en : meta.zh}</em>
@@ -1418,6 +1422,7 @@ export default function Home() {
   const previewLocation = eventPreview ? getEventLocationDetails(eventPreview.event) : null;
   const previewAppleMapUrl = eventPreview ? getOfficialCampMapUrl(eventPreview.event.location, "apple") : null;
   const previewGoogleMapUrl = eventPreview ? getOfficialCampMapUrl(eventPreview.event.location, "google") : null;
+  const previewIBurnUrl = eventPreview ? getIBurnMapPinUrl(eventPreview.event.location, eventPreview.event.title) : null;
   const previewCategory = eventPreview ? normalizeCategory(eventPreview.event.category) : "other";
   const previewMeta = categoryMeta[previewCategory] || categoryMeta.other;
 
@@ -1635,6 +1640,7 @@ export default function Home() {
               <a href={eventPreview.event.link} target="_blank" rel="noreferrer">{t.open} ↗</a>
               {previewAppleMapUrl && <a href={previewAppleMapUrl} target="_blank" rel="noopener noreferrer">{t.appleMaps} ↗</a>}
               {previewGoogleMapUrl && <a href={previewGoogleMapUrl} target="_blank" rel="noopener noreferrer">{t.googleMaps} ↗</a>}
+              {previewIBurnUrl && <a href={previewIBurnUrl} target="_blank" rel="noopener noreferrer">{t.iburn} ↗</a>}
             </div>
 
             <div className="event-reader-actions">

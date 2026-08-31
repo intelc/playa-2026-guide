@@ -76,6 +76,20 @@ export function getOfficialCampMapUrl(location: unknown, provider: MapProvider =
   return `https://www.google.com/maps/search/?api=1&query=${coordinates}`;
 }
 
+/** Creates an iBurn universal link that adds the validated camp point as a map pin. */
+export function getIBurnMapPinUrl(location: unknown, title: unknown): string | null {
+  const point = getOfficialCampCoordinates(location);
+  if (!point) return null;
+
+  const pinTitle = typeof title === "string" ? title.replace(/\s+/g, " ").trim().slice(0, 160) : "";
+  const params = new URLSearchParams({
+    lat: point.latitude.toString(),
+    lng: point.longitude.toString(),
+    title: pinTitle || "Playa location",
+  });
+  return `https://iburnapp.com/pin?${params.toString()}`;
+}
+
 function isOfficialCampLocation(location: unknown): location is LocationRecord {
   return getOfficialCampCoordinates(location) !== null;
 }
