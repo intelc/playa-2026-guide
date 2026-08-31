@@ -1,15 +1,11 @@
 import { EVENT_DATES, getEvents, getSheetLink, WEBSITE_URL } from "./event-data.mjs";
 
-const categories = ["all", "prty", "arts", "work", "food", "tea", "adlt", "kid", "othr"];
+const categories = ["all", "party", "art", "community", "food-drink", "healing", "movement", "performance", "spiritual", "workshop", "adult", "other"];
 const aliases = {
-  all: "all", prty: "prty", party: "prty", "派对": "prty",
-  arts: "arts", art: "arts", "艺术": "arts",
-  work: "work", workshop: "work", "工作": "work", "工作坊": "work",
-  food: "food", "食物": "food", "美食": "food",
-  tea: "tea", drinks: "tea", drink: "tea", "茶": "tea", "茶饮": "tea",
-  adlt: "adlt", adult: "adlt", "成人": "adlt",
-  kid: "kid", kids: "kid", "孩子": "kid", "亲子": "kid",
-  othr: "othr", other: "othr", "其他": "othr",
+  all: "all", party: "party", prty: "party", "派对": "party", art: "art", arts: "art", "艺术": "art",
+  community: "community", "社区": "community", "food & drink": "food-drink", "food-drink": "food-drink", food: "food-drink", tea: "food-drink", "食饮": "food-drink", "食物": "food-drink", "美食": "food-drink", "茶": "food-drink", "茶饮": "food-drink",
+  healing: "healing", "疗愈": "healing", movement: "movement", "运动": "movement", performance: "performance", "演出": "performance", spiritual: "spiritual", "灵性": "spiritual",
+  workshop: "workshop", work: "workshop", "工作": "workshop", "工作坊": "workshop", adult: "adult", adlt: "adult", "成人": "adult", other: "other", othr: "other", "其他": "other",
 };
 const headers = {
   "content-type": "application/json; charset=utf-8",
@@ -60,8 +56,8 @@ export default async (request) => {
     const needle = q.toLocaleLowerCase();
     const events = await getEvents(lang);
     const matched = events.filter((event) => {
-      const normalized = aliases[event.type.trim().toLocaleLowerCase()] ?? "othr";
-      return (!needle || [event.title, event.description, event.camp, event.where, event.extra].join(" ").toLocaleLowerCase().includes(needle))
+      const normalized = aliases[event.category.trim().toLocaleLowerCase()] ?? "other";
+      return (!needle || [event.title, event.description, event.camp, event.where, event.extra, ...event.tags.map((tag) => tag.replaceAll("_", " "))].join(" ").toLocaleLowerCase().includes(needle))
         && (category === "all" || normalized === category)
         && (day === null || (event.times[day] && event.times[day] !== "-"));
     });
@@ -78,14 +74,14 @@ export default async (request) => {
       usage: {
         endpoint,
         parameters: {
-          q: "optional text search across event title, description, camp, and location",
+          q: "optional text search across event title, description, tags, camp, and location",
           lang: "en (default) or zh",
           day: "0-8, or a Playa date such as 2026-08-30; date is an alias",
-          category: "all (default), prty, arts, work, food, tea, adlt, kid, or othr",
+          category: categories.join(", "),
           limit: "1-100 (default 25)",
           offset: "0-10000 (default 0)",
         },
-        example: `${endpoint}?lang=en&day=2026-08-30&category=arts&q=music&limit=10`,
+        example: `${endpoint}?lang=en&day=2026-08-30&category=art&q=music&limit=10`,
         citation: "When recommending an event, cite its event.link as the live source and link back to Playa 2026 for discovery.",
       },
     }), { headers });

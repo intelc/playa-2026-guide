@@ -10,7 +10,7 @@ export const EVENT_DATES = [
   "2026-08-30", "2026-08-31", "2026-09-01", "2026-09-02", "2026-09-03",
   "2026-09-04", "2026-09-05", "2026-09-06", "2026-09-07",
 ] as const;
-export const CATEGORY_KEYS = ["all", "prty", "arts", "work", "food", "tea", "adlt", "kid", "othr"] as const;
+export const CATEGORY_KEYS = ["all", "party", "art", "community", "food-drink", "healing", "movement", "performance", "spiritual", "workshop", "adult", "other"] as const;
 
 export type EventLanguage = "en" | "zh";
 export type EventCategory = (typeof CATEGORY_KEYS)[number];
@@ -18,7 +18,8 @@ export type EventItem = {
   uid: string;
   title: string;
   description: string;
-  type: string;
+  category: string;
+  tags: string[];
   camp: string;
   where: string;
   extra: string;
@@ -42,26 +43,25 @@ type Cell = { v?: string | number | null } | null;
 type SheetRow = { c?: Cell[] };
 
 const categoryAliases: Record<string, EventCategory> = {
-  all: "all", prty: "prty", party: "prty", "派对": "prty",
-  arts: "arts", art: "arts", "艺术": "arts",
-  work: "work", workshop: "work", "工作": "work", "工作坊": "work",
-  food: "food", "食物": "food", "美食": "food",
-  tea: "tea", drinks: "tea", drink: "tea", "茶": "tea", "茶饮": "tea",
-  adlt: "adlt", adult: "adlt", "成人": "adlt",
-  kid: "kid", kids: "kid", "孩子": "kid", "亲子": "kid",
-  othr: "othr", other: "othr", "其他": "othr",
+  all: "all", party: "party", prty: "party", "派对": "party",
+  art: "art", arts: "art", "艺术": "art", community: "community", "社区": "community",
+  "food & drink": "food-drink", "food-drink": "food-drink", food: "food-drink", tea: "food-drink", "食饮": "food-drink", "食物": "food-drink", "美食": "food-drink", "茶": "food-drink", "茶饮": "food-drink",
+  healing: "healing", "疗愈": "healing", movement: "movement", "运动": "movement",
+  performance: "performance", "演出": "performance", spiritual: "spiritual", "灵性": "spiritual",
+  workshop: "workshop", work: "workshop", "工作": "workshop", "工作坊": "workshop",
+  adult: "adult", adlt: "adult", "成人": "adult", other: "other", othr: "other", "其他": "other",
 };
 
-export function normalizeCategory(type: string): EventCategory {
-  return categoryAliases[type.trim().toLocaleLowerCase()] ?? "othr";
+export function normalizeCategory(category: string): EventCategory {
+  return categoryAliases[category.trim().toLocaleLowerCase()] ?? "other";
 }
 
 export function filterEvents(events: EventItem[], options: { q: string; category: EventCategory; day: number | null }) {
   const needle = options.q.toLocaleLowerCase();
   return events.filter((event) => {
-    const matchesQuery = !needle || [event.title, event.description, event.camp, event.where, event.extra]
+    const matchesQuery = !needle || [event.title, event.description, event.camp, event.where, event.extra, ...event.tags.map((tag) => tag.replaceAll("_", " "))]
       .join(" ").toLocaleLowerCase().includes(needle);
-    const matchesCategory = options.category === "all" || normalizeCategory(event.type) === options.category;
+    const matchesCategory = options.category === "all" || normalizeCategory(event.category) === options.category;
     const matchesDay = options.day === null || (event.times[options.day] && event.times[options.day] !== "-");
     return matchesQuery && matchesCategory && matchesDay;
   });

@@ -34,10 +34,11 @@ test("normalizes official event URLs without losing meaningful art anchors", () 
 
 test("parses the extra Chinese title column and second header row", () => {
   const [event] = parseEventRows([chineseCredit, chineseHeader, chineseEvent()], "zh");
-  assert.deepEqual({ title: event.title, description: event.description, type: event.type, uid: event.uid }, {
+  assert.deepEqual({ title: event.title, description: event.description, category: event.category, tags: event.tags, uid: event.uid }, {
     title: "中文标题",
     description: "中文描述",
-    type: "派对",
+    category: "派对",
+    tags: ["标签"],
     uid: "event-1",
   });
 });

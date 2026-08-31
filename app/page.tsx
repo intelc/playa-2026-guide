@@ -20,7 +20,8 @@ type EventItem = {
   uid: string;
   title: string;
   description: string;
-  type: string;
+  category: string;
+  tags: string[];
   camp: string;
   where: string;
   extra: string;
@@ -84,7 +85,7 @@ const eventDayOrdinals = eventDateKeys.map((date) => {
   return Date.UTC(year, month - 1, day) / (dayMinutes * minuteMs);
 });
 
-const categoryOrder = ["all", "prty", "arts", "work", "food", "tea", "adlt", "kid", "othr"];
+const categoryOrder = ["all", "party", "art", "community", "food-drink", "healing", "movement", "performance", "spiritual", "workshop", "adult", "other"];
 const websiteUrl = "https://playa.intelchen.com";
 const publicSearchApiUrl = `${websiteUrl}/api/search`;
 const sourceListLinks: Record<Lang, string> = {
@@ -92,23 +93,26 @@ const sourceListLinks: Record<Lang, string> = {
   zh: "https://docs.google.com/spreadsheets/d/1cPbc5bkKwQ11aID9Xa4-fRyMLpFaX80bAcN3hMjo_DY/edit?gid=1125425695#gid=1125425695",
 };
 
-const categoryMeta: Record<string, { en: string; zh: string; mark: string }> = {
-  all: { en: "All events", zh: "全部活动", mark: "✦" },
-  prty: { en: "Party", zh: "派对", mark: "◉" },
-  arts: { en: "Art", zh: "艺术", mark: "◆" },
-  work: { en: "Workshop", zh: "工作坊", mark: "△" },
-  food: { en: "Food", zh: "美食", mark: "●" },
-  tea: { en: "Drinks", zh: "茶饮", mark: "◒" },
-  adlt: { en: "Adult", zh: "成人", mark: "◇" },
-  kid: { en: "Kids", zh: "亲子", mark: "○" },
-  othr: { en: "Other", zh: "其他", mark: "✳" },
+const categoryMeta: Record<string, { en: string; zh: string; emoji: string }> = {
+  all: { en: "All events", zh: "全部活动", emoji: "✨" },
+  party: { en: "Party", zh: "派对", emoji: "🎉" },
+  art: { en: "Art", zh: "艺术", emoji: "🎨" },
+  community: { en: "Community", zh: "社区", emoji: "🤝" },
+  "food-drink": { en: "Food & Drink", zh: "食饮", emoji: "🍽️" },
+  healing: { en: "Healing", zh: "疗愈", emoji: "💚" },
+  movement: { en: "Movement", zh: "运动", emoji: "🕺" },
+  performance: { en: "Performance", zh: "演出", emoji: "🎭" },
+  spiritual: { en: "Spiritual", zh: "灵性", emoji: "🔮" },
+  workshop: { en: "Workshop", zh: "工作坊", emoji: "🛠️" },
+  adult: { en: "Adult", zh: "成人", emoji: "🔞" },
+  other: { en: "Other", zh: "其他", emoji: "🌀" },
 };
 
 const copy = {
   en: {
     navTitle: "PLAYA / 2026",
     navSub: "Black Rock City field guide",
-    search: "Search events, camps, or locations…",
+    search: "Search events, tags, camps, or locations…",
     eyebrow: "COMMUNITY-CURATED · 3,744 MOMENTS IN THE DUST",
     heroA: "FIND YOUR",
     heroB: "NEXT WONDER.",
@@ -182,7 +186,7 @@ const copy = {
   zh: {
     navTitle: "PLAYA / 2026",
     navSub: "双语沙漠活动指南",
-    search: "搜索活动、营地或地点……",
+    search: "搜索活动、标签、营地或地点……",
     eyebrow: "社群整理 · 3,744 个沙漠时刻",
     heroA: "去遇见",
     heroB: "下一场奇迹。",
@@ -254,28 +258,22 @@ const copy = {
   },
 };
 
-function normalizeCategory(type: string) {
-  const key = type.toLowerCase();
-  if (key === "art" || key === "arts" || type === "艺术") return "arts";
-  if (type === "派对") return "prty";
-  if (type === "工作") return "work";
-  if (type === "食物") return "food";
-  if (type === "茶") return "tea";
-  if (type === "成人") return "adlt";
-  if (type === "孩子") return "kid";
-  if (type === "其他") return "othr";
-  return key;
+function normalizeCategory(category: string) {
+  const aliases: Record<string, string> = {
+    party: "party", prty: "party", "派对": "party", art: "art", arts: "art", "艺术": "art",
+    community: "community", "社区": "community", "food & drink": "food-drink", "food-drink": "food-drink", food: "food-drink", tea: "food-drink", "食饮": "food-drink", "食物": "food-drink", "美食": "food-drink", "茶": "food-drink", "茶饮": "food-drink",
+    healing: "healing", "疗愈": "healing", movement: "movement", "运动": "movement",
+    performance: "performance", "演出": "performance", spiritual: "spiritual", "灵性": "spiritual",
+    workshop: "workshop", work: "workshop", "工作": "workshop", "工作坊": "workshop",
+    adult: "adult", adlt: "adult", "成人": "adult", other: "other", othr: "other", "其他": "other",
+  };
+  return aliases[category.trim().toLocaleLowerCase()] || "other";
 }
 
 const categoryColors: Record<string, string> = {
-  prty: "#6856c4",
-  arts: "#e85a39",
-  work: "#7b9d68",
-  food: "#df9e36",
-  tea: "#69a4a6",
-  adlt: "#a04a6f",
-  kid: "#c87cad",
-  othr: "#87909a",
+  party: "#6856c4", art: "#e85a39", community: "#4f8292", "food-drink": "#df9e36",
+  healing: "#57966d", movement: "#c56f35", performance: "#b15176", spiritual: "#755aa6",
+  workshop: "#7b9d68", adult: "#a04a6f", other: "#87909a",
 };
 
 function getBrcClock(timestamp: number) {
@@ -395,8 +393,8 @@ function createAgentContext({ lang, query, category, day, savedEvents, now }: { 
   });
   const savedSection = orderedSavedEvents.length
     ? orderedSavedEvents.map((event, index) => {
-      const categoryKey = normalizeCategory(event.type);
-      const meta = categoryMeta[categoryKey] || categoryMeta.othr;
+      const categoryKey = normalizeCategory(event.category);
+      const meta = categoryMeta[categoryKey] || categoryMeta.other;
       const schedule = event.times.flatMap((time, dayIndex) => time && time !== "-"
         ? [`${days[dayIndex][lang === "en" ? 0 : 1]} ${days[dayIndex][2]} · ${time}`]
         : []).join("; ");
@@ -419,7 +417,7 @@ Use the API to find live events. It accepts:
 - q: optional text search across title, description, camp, and location
 - lang: en (default) or zh
 - day: 0–8, or a Playa date such as 2026-08-30 (date is also accepted as an alias)
-- category: all, prty, arts, work, food, tea, adlt, kid, or othr
+- category: all, party, art, community, food-drink, healing, movement, performance, spiritual, workshop, adult, or other
 - limit: 1–100 (default 25), and optional offset: 0–10000
 
 Current visitor context / 当前访客筛选:
@@ -457,9 +455,9 @@ async function createEventShareCard(event: EventItem, lang: Lang, selectedDay: n
   const context = canvas.getContext("2d");
   if (!context) throw new Error("Canvas is unavailable");
 
-  const category = normalizeCategory(event.type);
-  const meta = categoryMeta[category] || categoryMeta.othr;
-  const accent = categoryColors[category] || categoryColors.othr;
+  const category = normalizeCategory(event.category);
+  const meta = categoryMeta[category] || categoryMeta.other;
+  const accent = categoryColors[category] || categoryColors.other;
   const shownDay = eventDayIndex(event, selectedDay);
   const locationDetails = getEventLocationDetails(event);
   const addressProvenance = formatAddressProvenance(event, lang);
@@ -514,7 +512,7 @@ async function createEventShareCard(event: EventItem, lang: Lang, selectedDay: n
 
   context.fillStyle = "#ffffff";
   context.font = `700 142px ${font}`;
-  context.fillText(meta.mark, padding, 250);
+  context.fillText(meta.emoji, padding, 250);
 
   // Personalization is a deliberate badge, not an orphaned line of text.
   const shareKicker = sharedBy.trim()
@@ -635,7 +633,7 @@ async function createEventShareCard(event: EventItem, lang: Lang, selectedDay: n
   context.fillStyle = accent;
   context.font = `700 22px ${font}`;
   context.textAlign = "right";
-  context.fillText(`${meta.mark} ${lang === "en" ? meta.en.toUpperCase() : meta.zh}`, width - padding, footerY + 71);
+  context.fillText(`${meta.emoji} ${lang === "en" ? meta.en.toUpperCase() : meta.zh}`, width - padding, footerY + 71);
   context.textAlign = "left";
 
   return await new Promise<Blob>((resolve, reject) => {
@@ -747,8 +745,8 @@ async function createPlanShareCard(events: EventItem[], lang: Lang, name: string
   let y = 355;
   visibleEvents.forEach((event, index) => {
     const shownDay = eventDayIndex(event, -1);
-    const category = normalizeCategory(event.type);
-    const meta = categoryMeta[category] || categoryMeta.othr;
+    const category = normalizeCategory(event.category);
+    const meta = categoryMeta[category] || categoryMeta.other;
     const locationDetails = getEventLocationDetails(event);
     const addressProvenance = formatAddressProvenance(event, lang);
     const officialCampPoint = getOfficialCampPointLabel(event.location, lang);
@@ -756,7 +754,7 @@ async function createPlanShareCard(events: EventItem[], lang: Lang, name: string
 
     context.fillStyle = index % 2 ? "rgba(255,255,255,.72)" : "rgba(255,255,255,.9)";
     context.beginPath(); context.roundRect(padding, cardY, width - padding * 2, 132, 18); context.fill();
-    context.fillStyle = categoryColors[category] || categoryColors.othr;
+    context.fillStyle = categoryColors[category] || categoryColors.other;
     context.beginPath(); context.roundRect(padding, cardY, 10, 132, 5); context.fill();
 
     context.fillStyle = "#171713";
@@ -766,9 +764,9 @@ async function createPlanShareCard(events: EventItem[], lang: Lang, name: string
     context.font = `700 18px ${font}`;
     context.fillText(`${days[shownDay][lang === "en" ? 0 : 1]} · ${days[shownDay][2]}`, padding + 30, cardY + 72);
 
-    context.fillStyle = categoryColors[category] || categoryColors.othr;
+    context.fillStyle = categoryColors[category] || categoryColors.other;
     context.font = `700 18px ${font}`;
-    const timeLabel = `${meta.mark} ${event.times[shownDay]}`;
+    const timeLabel = `${meta.emoji} ${event.times[shownDay]}`;
     const locationTextX = padding + 142;
     let timeLabelWidth = 650;
     if (officialCampPoint) {
@@ -780,7 +778,7 @@ async function createPlanShareCard(events: EventItem[], lang: Lang, name: string
       timeLabelWidth = Math.max(160, coordinateX - locationTextX - 24);
       context.fillStyle = "#71695e";
       context.fillText(officialCampPoint.coordinates, coordinateX, cardY + 31);
-      context.fillStyle = categoryColors[category] || categoryColors.othr;
+      context.fillStyle = categoryColors[category] || categoryColors.other;
       context.font = `700 18px ${font}`;
     }
     context.fillText(truncateCanvasText(context, timeLabel, timeLabelWidth), locationTextX, cardY + 31);
@@ -918,8 +916,8 @@ async function buildPlanShareAsset(events: EventItem[], lang: Lang, name: string
 }
 
 function EventCard({ event, lang, day, now, saved, sharing, onSave, onPreview, onShare }: { event: EventItem; lang: Lang; day: number; now: number; saved: boolean; sharing: boolean; onSave: () => void; onPreview: () => void; onShare: () => void }) {
-  const category = normalizeCategory(event.type);
-  const meta = categoryMeta[category] || categoryMeta.othr;
+  const category = normalizeCategory(event.category);
+  const meta = categoryMeta[category] || categoryMeta.other;
   const shownDay = eventDayIndex(event, day, now);
   const happened = occurrenceHasEnded(event.times[shownDay], shownDay, now);
   const locationDetails = getEventLocationDetails(event);
@@ -944,6 +942,7 @@ function EventCard({ event, lang, day, now, saved, sharing, onSave, onPreview, o
           </div>
         </div>
         <p className="event-description">{event.description}</p>
+        {event.tags.length > 0 && <div className="event-tags" aria-label={lang === "en" ? "Tags" : "标签"}>{event.tags.slice(0, 4).map((tag) => <span key={tag}>{tag.replaceAll("_", " ")}</span>)}</div>}
         <div className="card-footer">
           <div className="card-footer-copy">
             <div className="event-links">
@@ -1204,7 +1203,7 @@ export default function Home() {
         : Boolean(event.times[day] && event.times[day] !== "-");
       if (!matchesTime) continue;
       result.all += 1;
-      const key = normalizeCategory(event.type);
+      const key = normalizeCategory(event.category);
       result[key] = (result[key] || 0) + 1;
     }
     return result;
@@ -1213,8 +1212,8 @@ export default function Home() {
   const filtered = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase();
     return events.filter((event) => {
-      const eventCategory = normalizeCategory(event.type);
-      const matchesQuery = !needle || [event.title, event.description, event.camp, event.where].join(" ").toLocaleLowerCase().includes(needle);
+      const eventCategory = normalizeCategory(event.category);
+      const matchesQuery = !needle || [event.title, event.description, event.camp, event.where, event.extra, ...event.tags.map((tag) => tag.replaceAll("_", " "))].join(" ").toLocaleLowerCase().includes(needle);
       const matchesCategory = category === "all" || eventCategory === category;
       const matchesDay = day < 0
         ? eventHasUpcomingOccurrence(event, clockNow)
@@ -1417,9 +1416,10 @@ export default function Home() {
 
   const previewDay = eventPreview ? eventDayIndex(eventPreview.event, eventPreview.selectedDay, clockNow) : 0;
   const previewLocation = eventPreview ? getEventLocationDetails(eventPreview.event) : null;
-  const previewMapUrl = eventPreview ? getOfficialCampMapUrl(eventPreview.event.location) : null;
-  const previewCategory = eventPreview ? normalizeCategory(eventPreview.event.type) : "othr";
-  const previewMeta = categoryMeta[previewCategory] || categoryMeta.othr;
+  const previewAppleMapUrl = eventPreview ? getOfficialCampMapUrl(eventPreview.event.location, "apple") : null;
+  const previewGoogleMapUrl = eventPreview ? getOfficialCampMapUrl(eventPreview.event.location, "google") : null;
+  const previewCategory = eventPreview ? normalizeCategory(eventPreview.event.category) : "other";
+  const previewMeta = categoryMeta[previewCategory] || categoryMeta.other;
 
   return (
     <main>
@@ -1459,7 +1459,7 @@ export default function Home() {
           <dl className="stats">
             <div><dt>{loading ? "—" : events.length.toLocaleString()}</dt><dd>{t.events}</dd></div>
             <div><dt>09</dt><dd>{t.days}</dd></div>
-            <div><dt>08</dt><dd>{t.languages}</dd></div>
+            <div><dt>{String(categoryOrder.length - 1).padStart(2, "0")}</dt><dd>{t.languages}</dd></div>
             <div><dt>{String(saved.size).padStart(2, "0")}</dt><dd>{t.saved}</dd></div>
           </dl>
         </div>
@@ -1501,7 +1501,7 @@ export default function Home() {
               const meta = categoryMeta[key];
               return (
                 <button key={key} className={category === key ? "active" : ""} onClick={() => setCategory(key)}>
-                  <span>{meta.mark}</span>{lang === "en" ? meta.en : meta.zh}<em>{counts[key] || 0}</em>
+                  <span>{meta.emoji}</span>{lang === "en" ? meta.en : meta.zh}<em>{counts[key] || 0}</em>
                 </button>
               );
             })}
@@ -1569,9 +1569,9 @@ export default function Home() {
                     {dayEvents.length === 0 ? <p className="calendar-blank">—</p> : dayEvents.map((event) => (
                       <article
                         key={`${event.uid}-${dayIndex}`}
-                        className={`calendar-event category-${normalizeCategory(event.type)} ${occurrenceHasEnded(event.times[dayIndex], dayIndex, clockNow) ? "is-past" : ""}`}
+                        className={`calendar-event category-${normalizeCategory(event.category)} ${occurrenceHasEnded(event.times[dayIndex], dayIndex, clockNow) ? "is-past" : ""}`}
                       >
-                        <div className="calendar-event-top"><span>{categoryMeta[normalizeCategory(event.type)]?.mark || "✳"} {event.times[dayIndex]}</span>{!sharedPlan && <button onClick={() => toggleSaved(event.uid)} aria-label={t.remove}>×</button>}</div>
+                        <div className="calendar-event-top"><span>{categoryMeta[normalizeCategory(event.category)]?.emoji || "🌀"} {event.times[dayIndex]}</span>{!sharedPlan && <button onClick={() => toggleSaved(event.uid)} aria-label={t.remove}>×</button>}</div>
                         <h3><button className="calendar-event-details" onClick={() => previewEvent(event, dayIndex, sharedPlan ? sharedPlan.name : null)}>{event.title}</button></h3>
                         <p>{event.where !== "-" ? event.where : event.camp}</p>
                         <a href={event.link} target="_blank" rel="noreferrer" aria-label={`${t.open}: ${event.title}`}>↗</a>
@@ -1611,7 +1611,7 @@ export default function Home() {
             <button data-dialog-initial-focus className="event-reader-close" onClick={() => setEventPreview(null)} aria-label={t.close}>×</button>
             <p className="event-reader-kicker">PLAYA / 2026 · {lang === "en" ? previewMeta.en : previewMeta.zh}</p>
             <h2>{getEventPreviewHeading(eventPreview.sharedBy, lang)}</h2>
-            <div className="event-reader-mark" aria-hidden="true">{previewMeta.mark}</div>
+            <div className="event-reader-mark" aria-hidden="true">{previewMeta.emoji}</div>
             <h3 id="event-reader-title">{eventPreview.event.title}</h3>
 
             <dl className="event-reader-facts">
@@ -1628,11 +1628,13 @@ export default function Home() {
             <section className="event-reader-about">
               <h4>{t.aboutEvent}</h4>
               <p>{eventPreview.event.description || "—"}</p>
+              {eventPreview.event.tags.length > 0 && <div className="event-tags event-reader-tags" aria-label={lang === "en" ? "Tags" : "标签"}>{eventPreview.event.tags.map((tag) => <span key={tag}>{tag.replaceAll("_", " ")}</span>)}</div>}
             </section>
 
             <div className="event-reader-links">
               <a href={eventPreview.event.link} target="_blank" rel="noreferrer">{t.open} ↗</a>
-              {previewMapUrl && <a href={previewMapUrl} target="_blank" rel="noopener noreferrer">{t.viewMap} ↗</a>}
+              {previewAppleMapUrl && <a href={previewAppleMapUrl} target="_blank" rel="noopener noreferrer">{t.appleMaps} ↗</a>}
+              {previewGoogleMapUrl && <a href={previewGoogleMapUrl} target="_blank" rel="noopener noreferrer">{t.googleMaps} ↗</a>}
             </div>
 
             <div className="event-reader-actions">

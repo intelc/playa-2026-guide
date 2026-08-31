@@ -205,8 +205,8 @@ const inferredConservative = inferredMapCamps.filter((row) => row.boundaryInters
   && row.boundaryIntersection.predicted === row.representativeRoads.predicted
   && row.boundaryIntersection.predicted === row.boundaryRoads.predicted);
 const conservativeMapKeys = new Set(inferredConservative.map((row) => row.key));
-const sheetEventRows = getRows(sheet).slice(1).filter((row) => typeof row[15] === "string" && row[15].startsWith("http"));
-const sheetRowsAtConservativeCamps = sheetEventRows.filter((row) => conservativeMapKeys.has(normalizeCampName(row[12])));
+const sheetEventRows = getRows(sheet).slice(1).filter((row) => typeof row[16] === "string" && row[16].startsWith("http"));
+const sheetRowsAtConservativeCamps = sheetEventRows.filter((row) => conservativeMapKeys.has(normalizeCampName(row[13])));
 
 console.log(`Sources:\n  camps: ${CAMP_URL}\n  streets: ${STREET_URL}\n  sheet: ${SHEET_URL}`);
 console.log(`\nGeometry: ${camps.features.length} camp features; ${streets.features.length} street features; ${radial.length} distinct radial names; ${annular.length} distinct annular names; ${intersections.length} named radial/annular intersections.`);
