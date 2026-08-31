@@ -58,6 +58,7 @@ const eventDayOrdinals = eventDateKeys.map((date) => {
 
 const categoryOrder = ["all", "prty", "arts", "work", "food", "tea", "adlt", "kid", "othr"];
 const websiteUrl = "https://playa.intelchen.com";
+const publicSearchApiUrl = `${websiteUrl}/api/search`;
 
 const categoryMeta: Record<string, { en: string; zh: string; mark: string }> = {
   all: { en: "All events", zh: "全部活动", mark: "✦" },
@@ -282,8 +283,8 @@ async function copyToClipboard(text: string) {
   textarea.remove();
 }
 
-function createAgentContext({ lang, query, category, day, origin }: { lang: Lang; query: string; category: string; day: number; origin: string }) {
-  const endpoint = new URL("/api/search", origin);
+function createAgentContext({ lang, query, category, day }: { lang: Lang; query: string; category: string; day: number }) {
+  const endpoint = new URL(publicSearchApiUrl);
   endpoint.searchParams.set("lang", lang);
   if (query.trim()) endpoint.searchParams.set("q", query.trim());
   if (category !== "all") endpoint.searchParams.set("category", category);
@@ -294,7 +295,7 @@ function createAgentContext({ lang, query, category, day, origin }: { lang: Lang
   return `You are helping someone explore Playa 2026, a bilingual Burning Man / Black Rock City event guide.
 
 Canonical website / 官方网站: ${websiteUrl}
-Callable public search API / 当前可调用的公开搜索 API: ${endpoint.origin}/api/search
+Callable public search API / 当前可调用的公开搜索 API: ${publicSearchApiUrl}
 
 Use the API to find live events. It accepts:
 - q: optional text search across title, description, camp, and location
@@ -794,7 +795,7 @@ export default function Home() {
   }
 
   async function copyAgentContext() {
-    await copyToClipboard(createAgentContext({ lang, query, category, day, origin: window.location.origin }));
+    await copyToClipboard(createAgentContext({ lang, query, category, day }));
     setAgentCopied(true);
     window.setTimeout(() => setAgentCopied(false), 1800);
   }
