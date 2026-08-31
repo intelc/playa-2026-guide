@@ -507,7 +507,6 @@ function EventCard({ event, lang, day, saved, sharing, onSave, onShare }: { even
           </div>
         </div>
         <h3>{event.title}</h3>
-        <p className="event-description">{event.description}</p>
         <div className="event-meta">
           <div>
             <span>{days[shownDay][lang === "en" ? 0 : 1]} · {days[shownDay][2]}</span>
@@ -518,6 +517,7 @@ function EventCard({ event, lang, day, saved, sharing, onSave, onShare }: { even
             <strong>{location}</strong>
           </div>
         </div>
+        <p className="event-description">{event.description}</p>
         <div className="card-footer">
           <span>{event.camp}</span>
           <a href={event.link} target="_blank" rel="noreferrer">{copy[lang].open} ↗</a>
