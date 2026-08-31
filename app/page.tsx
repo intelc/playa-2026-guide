@@ -221,6 +221,13 @@ export default function Home() {
 
   useEffect(() => setLimit(36), [query, category, day, savedOnly, lang]);
 
+  useEffect(() => {
+    if (!planOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [planOpen]);
+
   const counts = useMemo(() => {
     const result: Record<string, number> = { all: events.length };
     for (const event of events) {
