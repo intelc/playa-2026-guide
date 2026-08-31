@@ -13,7 +13,8 @@ import {
   type SharedPlanPayload,
 } from "@/lib/shared-plan";
 import { buildSharedEventMetadata, buildSharedPlanMetadata } from "@/lib/share-metadata";
-import { getEventAddressProvenance, getEventLocationDisplay, getIBurnMapPinUrl, getOfficialCampCoordinates, getOfficialCampMapUrl, type EventLocation } from "../lib/event-location";
+import { getEventAddressProvenance, getEventLocationDisplay, getOfficialCampCoordinates, getOfficialCampMapUrl, type EventLocation } from "../lib/event-location";
+import { getIBurnEventUrl } from "../lib/iburn";
 
 type Lang = "en" | "zh";
 
@@ -157,7 +158,7 @@ const copy = {
     chooseMap: "Choose a map app",
     appleMaps: "Apple Maps",
     googleMaps: "Google Maps",
-    iburn: "Send to iBurn",
+    iburn: "Open in iBurn",
     location: "Location",
     savedOnly: "Saved only",
     save: "Save event",
@@ -232,7 +233,7 @@ const copy = {
     chooseMap: "选择地图应用",
     appleMaps: "Apple 地图",
     googleMaps: "Google 地图",
-    iburn: "发送到 iBurn",
+    iburn: "在 iBurn 中打开",
     location: "地点",
     savedOnly: "只看收藏",
     save: "收藏活动",
@@ -970,7 +971,7 @@ function EventCard({ event, lang, day, now, saved, sharing, onSave, onPreview, o
   const addressProvenance = formatAddressProvenance(event, lang);
   const appleMapUrl = getOfficialCampMapUrl(event.location, "apple");
   const googleMapUrl = getOfficialCampMapUrl(event.location, "google");
-  const iBurnUrl = getIBurnMapPinUrl(event.location, event.title);
+  const iBurnUrl = getIBurnEventUrl(event.uid, event.title);
 
   return (
     <article className={`event-card category-${category} ${happened ? "is-past" : ""}`}>
@@ -1465,7 +1466,7 @@ export default function Home() {
   const previewLocation = eventPreview ? getEventLocationDetails(eventPreview.event) : null;
   const previewAppleMapUrl = eventPreview ? getOfficialCampMapUrl(eventPreview.event.location, "apple") : null;
   const previewGoogleMapUrl = eventPreview ? getOfficialCampMapUrl(eventPreview.event.location, "google") : null;
-  const previewIBurnUrl = eventPreview ? getIBurnMapPinUrl(eventPreview.event.location, eventPreview.event.title) : null;
+  const previewIBurnUrl = eventPreview ? getIBurnEventUrl(eventPreview.event.uid, eventPreview.event.title) : null;
   const previewCategory = eventPreview ? normalizeCategory(eventPreview.event.category) : "other";
   const previewMeta = categoryMeta[previewCategory] || categoryMeta.other;
 
