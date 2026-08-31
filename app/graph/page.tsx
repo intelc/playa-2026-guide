@@ -10,6 +10,11 @@ type Camera = { x: number; y: number; scale: number };
 const colors: Record<string, string> = { party: "#6856c4", art: "#e85a39", community: "#4f8292", "food-drink": "#d9962d", healing: "#57966d", movement: "#c56f35", performance: "#b15176", spiritual: "#755aa6", workshop: "#7b9d68", adult: "#a04a6f", other: "#87909a" };
 const categories = ["all", ...Object.keys(colors)];
 const cleanTag = (tag: string) => tag.replaceAll("_", " ").replaceAll("-", " ").trim();
+const normalizeCategory = (value: string) => {
+  const normalized = value.trim().toLowerCase().replaceAll("&", "and").replace(/[\s_]+/g, "-");
+  if (normalized === "food-and-drink" || normalized === "food" || normalized === "tea") return "food-drink";
+  return colors[normalized] ? normalized : "other";
+};
 const hash = (value: string) => { let h = 2166136261; for (let i = 0; i < value.length; i++) h = Math.imul(h ^ value.charCodeAt(i), 16777619); return Math.abs(h); };
 
 function buildGraph(events: EventItem[]) {
@@ -29,7 +34,7 @@ function buildGraph(events: EventItem[]) {
     const seed = hash(event.uid);
     const angle = ((seed % 10000) / 10000) * Math.PI * 2;
     const radius = 430 + (seed % 1250);
-    const node: Node = { id: event.uid, kind: "event", label: event.title, category: colors[event.category] ? event.category : "other", event, x: Math.cos(angle) * radius + ((index % 7) - 3) * 8, y: Math.sin(angle) * radius + ((index % 11) - 5) * 8, vx: 0, vy: 0, radius: 3.2, links: fallback.map((tag) => `tag:${tag}`) };
+    const node: Node = { id: event.uid, kind: "event", label: event.title, category: normalizeCategory(event.category), event, x: Math.cos(angle) * radius + ((index % 7) - 3) * 8, y: Math.sin(angle) * radius + ((index % 11) - 5) * 8, vx: 0, vy: 0, radius: 3.2, links: fallback.map((tag) => `tag:${tag}`) };
     nodes.push(node);
     fallback.forEach((tag) => tagNodes.get(tag)?.links.push(node.id));
   });
@@ -52,7 +57,7 @@ export default function EventGraphPage() {
   const [cameraVersion, setCameraVersion] = useState(0);
 
   useEffect(() => { fetch("/api/events?lang=en").then((r) => r.json()).then((data) => { setEvents(data.events || []); nodesRef.current = buildGraph(data.events || []); setLoading(false); }).catch(() => setLoading(false)); }, []);
-  const matches = useMemo(() => { const q = query.trim().toLowerCase(); return new Set(events.filter((event) => (category === "all" || event.category === category) && (!q || [event.title, event.description, event.camp, ...event.tags].join(" ").toLowerCase().includes(q))).map((event) => event.uid)); }, [events, query, category]);
+  const matches = useMemo(() => { const q = query.trim().toLowerCase(); return new Set(events.filter((event) => (category === "all" || normalizeCategory(event.category) === category) && (!q || [event.title, event.description, event.camp, ...event.tags].join(" ").toLowerCase().includes(q))).map((event) => event.uid)); }, [events, query, category]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current; if (!canvas) return;
@@ -140,7 +145,7 @@ export default function EventGraphPage() {
         <div className="graph-zoom"><button onClick={() => zoom(1.25)} aria-label="Zoom in"><Plus /></button><button onClick={() => zoom(.8)} aria-label="Zoom out"><Minus /></button><button onClick={reset} aria-label="Reset view"><LocateFixed /></button></div>
         <div className="graph-tip"><span>CLICK + DRAG</span> to wander the graph</div>
       </div>
-      {selected && <aside className="graph-detail" style={{ "--detail-color": colors[selected.category] || colors.other } as React.CSSProperties}>
+      {selected && <aside className="graph-detail" style={{ "--detail-color": colors[normalizeCategory(selected.category)] || colors.other } as React.CSSProperties}>
         <button className="graph-detail-close" onClick={() => setSelected(null)} aria-label="Close event"><X /></button>
         <p>{selected.category.replace("-", " ")} · EVENT NODE</p><h2>{selected.title}</h2>
         <div className="graph-detail-tags">{selected.tags.slice(0, 8).map((tag) => <button key={tag} onClick={() => setQuery(cleanTag(tag))}>#{cleanTag(tag)}</button>)}</div>
