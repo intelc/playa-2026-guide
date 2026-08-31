@@ -25,21 +25,24 @@ const server = spawn("npm", ["run", "start", "--", "--port", String(port)], {
 });
 
 try {
-  let html;
+  const routes = ["/", "/graph"];
   for (let attempt = 0; attempt < 60; attempt += 1) {
     try {
       const response = await fetch(`http://127.0.0.1:${port}/`);
-      if (response.ok) {
-        html = await response.text();
-        break;
-      }
+      if (response.ok) break;
     } catch {
       // The server can take a moment to accept connections after startup.
     }
     await new Promise((resolvePromise) => setTimeout(resolvePromise, 500));
   }
-  if (!html) throw new Error("Could not render the production homepage");
-  await writeFile(resolve(output, "index.html"), html.replaceAll(`http://localhost:${port}`, "https://playa.intelchen.com"));
+  for (const route of routes) {
+    const response = await fetch(`http://127.0.0.1:${port}${route}`);
+    if (!response.ok) throw new Error(`Could not render production route ${route}`);
+    const html = (await response.text()).replaceAll(`http://localhost:${port}`, "https://playa.intelchen.com");
+    const routeOutput = route === "/" ? output : resolve(output, route.slice(1));
+    await mkdir(routeOutput, { recursive: true });
+    await writeFile(resolve(routeOutput, "index.html"), html);
+  }
 } finally {
   server.kill("SIGTERM");
 }
