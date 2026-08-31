@@ -510,15 +510,6 @@ function EventCard({ event, lang, day, saved, sharing, onSave, onShare }: { even
       }}
     >
       <div className="card-body">
-        <div className="card-topline">
-          <span className="category-pill"><span aria-hidden="true">{meta.mark}</span>{lang === "en" ? meta.en : meta.zh}</span>
-          <div className="card-actions">
-            <button className="share-button" onClick={onShare} aria-label={sharing ? copy[lang].generating : copy[lang].share} disabled={sharing}>{sharing ? "…" : <Share2 aria-hidden="true" />}</button>
-            <button className={`save-button ${saved ? "is-saved" : ""}`} onClick={onSave} aria-label={saved ? copy[lang].remove : copy[lang].save}>
-              {saved ? "★" : "☆"}
-            </button>
-          </div>
-        </div>
         <h3>{event.title}</h3>
         <div className="event-meta">
           <div>
@@ -532,8 +523,16 @@ function EventCard({ event, lang, day, saved, sharing, onSave, onShare }: { even
         </div>
         <p className="event-description">{event.description}</p>
         <div className="card-footer">
-          <span>{event.camp}</span>
-          <a href={event.link} target="_blank" rel="noreferrer">{copy[lang].open} ↗</a>
+          <div className="card-footer-copy">
+            <a href={event.link} target="_blank" rel="noreferrer">{copy[lang].open} ↗</a>
+            <span><em>{lang === "en" ? meta.en : meta.zh}</em>{event.camp}</span>
+          </div>
+          <div className="card-actions">
+            <button className="share-button" onClick={onShare} aria-label={sharing ? copy[lang].generating : copy[lang].share} disabled={sharing}>{sharing ? "…" : <Share2 aria-hidden="true" />}</button>
+            <button className={`save-button ${saved ? "is-saved" : ""}`} onClick={onSave} aria-label={saved ? copy[lang].remove : copy[lang].save}>
+              {saved ? "★" : "☆"}
+            </button>
+          </div>
         </div>
       </div>
     </article>
