@@ -68,6 +68,7 @@ const brcTimeZone = "America/Los_Angeles";
 const minuteMs = 60_000;
 const dayMinutes = 24 * 60;
 const eventClockEpoch = Date.UTC(2026, 7, 30, 7);
+const languageStorageKey = "playa-language";
 const brcClockFormatter = new Intl.DateTimeFormat("en-US", {
   timeZone: brcTimeZone,
   year: "numeric",
@@ -963,6 +964,7 @@ function EventCard({ event, lang, day, now, saved, sharing, onSave, onPreview, o
 
 export default function Home() {
   const [lang, setLang] = useState<Lang>("en");
+  const [languageReady, setLanguageReady] = useState(false);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -1007,6 +1009,7 @@ export default function Home() {
       setSharedPlan(incomingPlan);
       setLang(incomingPlan.lang);
       setPlanOpen(true);
+      setLanguageReady(true);
       return;
     }
 
@@ -1015,12 +1018,31 @@ export default function Home() {
       document.documentElement.dataset.playaReturning = "true";
       setSharedEvent(incomingEvent);
       setLang(incomingEvent.lang);
+      setLanguageReady(true);
+      return;
     }
+
+    try {
+      const storedLanguage = window.localStorage.getItem(languageStorageKey);
+      if (storedLanguage === "en" || storedLanguage === "zh") setLang(storedLanguage);
+    } catch {
+      // Invalid or unavailable browser storage should not block the guide.
+    }
+    setLanguageReady(true);
   }, []);
 
   useEffect(() => {
     document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
   }, [lang]);
+
+  useEffect(() => {
+    if (!languageReady) return;
+    try {
+      window.localStorage.setItem(languageStorageKey, lang);
+    } catch {
+      // Invalid or unavailable browser storage should not block the guide.
+    }
+  }, [lang, languageReady]);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => setClockNow(Date.now()));
@@ -1032,6 +1054,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    if (!languageReady) return;
     let cancelled = false;
     setLoading(true);
     setError(false);
@@ -1053,7 +1076,7 @@ export default function Home() {
         }
       });
     return () => { cancelled = true; };
-  }, [lang]);
+  }, [lang, languageReady]);
 
   useEffect(() => {
     if (!sharedEvent || loading) return;
