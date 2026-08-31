@@ -90,6 +90,7 @@ const eventDayOrdinals = eventDateKeys.map((date) => {
 const categoryOrder = ["all", "party", "art", "community", "food-drink", "healing", "movement", "performance", "spiritual", "workshop", "adult", "other"];
 const websiteUrl = "https://playa.intelchen.com";
 const publicSearchApiUrl = `${websiteUrl}/api/search`;
+const iBurnLogoUrl = "https://raw.githubusercontent.com/iBurnApp/iBurn-iOS/bc90c99852d33a4e8e78fab5564c06bcc68e077a/iBurn/Images.xcassets/AppIcon.appiconset/iphone%402x.png";
 const sourceListLinks: Record<Lang, string> = {
   en: "https://docs.google.com/spreadsheets/d/1cPbc5bkKwQ11aID9Xa4-fRyMLpFaX80bAcN3hMjo_DY/edit",
   zh: "https://docs.google.com/spreadsheets/d/1cPbc5bkKwQ11aID9Xa4-fRyMLpFaX80bAcN3hMjo_DY/edit?gid=1125425695#gid=1125425695",
@@ -995,7 +996,7 @@ function EventDetailsPicker({ websiteUrl, iBurnUrl, lang }: { websiteUrl: string
             </div>
             <div className="map-picker-options">
               <a href={websiteUrl} target="_blank" rel="noreferrer" onClick={() => setOpen(false)}><span className="destination-icon website-icon">↗</span><strong>{labels.website}</strong><span>↗</span></a>
-              {iBurnUrl && <a href={iBurnUrl} target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)}><span className="destination-icon iburn-icon">iB</span><strong>{labels.iburn}</strong><span>↗</span></a>}
+              {iBurnUrl && <a href={iBurnUrl} target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)}><img className="destination-icon iburn-icon" src={iBurnLogoUrl} alt="" aria-hidden="true" /><strong>{labels.iburn}</strong><span>↗</span></a>}
             </div>
           </section>
         </div>,
