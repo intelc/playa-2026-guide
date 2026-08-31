@@ -26,5 +26,11 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body className={`${geistSans.variable} ${geistMono.variable}`}>{children}</body></html>;
+  const onboardingScript = `try{document.documentElement.dataset.playaReturning=localStorage.getItem("playa-entered")==="1"?"true":"false"}catch(e){document.documentElement.dataset.playaReturning="false"}`;
+  return (
+    <html lang="en">
+      <head><script dangerouslySetInnerHTML={{ __html: onboardingScript }} /></head>
+      <body className={`${geistSans.variable} ${geistMono.variable}`}>{children}</body>
+    </html>
+  );
 }

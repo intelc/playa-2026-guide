@@ -66,6 +66,7 @@ const copy = {
     days: "days",
     languages: "categories",
     saved: "saved",
+    makeMyList: "Make my Playa list",
     myPlaya: "My Playa",
     planHint: "Your saved events, arranged across the week. Stored only in this browser.",
     planEmpty: "Star any event to start building your personal playa list.",
@@ -114,6 +115,7 @@ const copy = {
     days: "天",
     languages: "分类",
     saved: "已收藏",
+    makeMyList: "制作我的 Playa 清单",
     myPlaya: "我的 Playa",
     planHint: "收藏的活动按日期排好，只保存在此浏览器中。",
     planEmpty: "收藏任意活动，开始制作你的个人 Playa 清单。",
@@ -635,6 +637,12 @@ export default function Home() {
     setSavedOnly(false);
   }
 
+  function enterPlaya() {
+    try { window.localStorage.setItem("playa-entered", "1"); } catch {}
+    document.documentElement.dataset.playaReturning = "true";
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }
+
   async function copyPlan() {
     const list = savedEvents.map((event, index) => {
       const eventDay = event.times.findIndex((time) => time && time !== "-");
@@ -757,7 +765,10 @@ export default function Home() {
           <p className="eyebrow">{t.eyebrow}</p>
           <h1><span>{t.heroA}</span><span>{t.heroB}</span></h1>
           <p className="hero-intro">{t.intro}</p>
-          <div className="source-stamp"><span />{t.updated}</div>
+          <div className="hero-entry-actions">
+            <button className="hero-cta" onClick={enterPlaya}>{t.makeMyList}</button>
+            <div className="source-stamp"><span />{t.updated}</div>
+          </div>
           <dl className="stats">
             <div><dt>{loading ? "—" : events.length.toLocaleString()}</dt><dd>{t.events}</dd></div>
             <div><dt>09</dt><dd>{t.days}</dd></div>
@@ -769,6 +780,7 @@ export default function Home() {
         <div className="horizon" aria-hidden="true"><span /><i /><b /></div>
       </header>
 
+      <div className="app-experience">
       <section className="directory" id="events">
         <div className="section-heading">
           <div><p>{t.exploreSub}</p><h2>{t.explore}</h2></div>
@@ -898,6 +910,7 @@ export default function Home() {
           </section>
         </div>
       )}
+      </div>
     </main>
   );
 }
