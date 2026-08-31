@@ -154,6 +154,8 @@ const copy = {
     reset: "Reset filters",
     loadingMore: "Loading more events",
     open: "Event details",
+    chooseDetails: "Choose where to open",
+    website: "Event website",
     viewMap: "View location",
     chooseMap: "Choose a map app",
     appleMaps: "Apple Maps",
@@ -229,6 +231,8 @@ const copy = {
     reset: "重置筛选",
     loadingMore: "正在加载更多活动",
     open: "查看详情",
+    chooseDetails: "选择打开方式",
+    website: "活动网站",
     viewMap: "查看位置",
     chooseMap: "选择地图应用",
     appleMaps: "Apple 地图",
@@ -962,6 +966,45 @@ function MapAppPicker({ appleUrl, googleUrl, lang, className = "" }: { appleUrl:
   );
 }
 
+function EventDetailsPicker({ websiteUrl, iBurnUrl, lang }: { websiteUrl: string; iBurnUrl: string | null; lang: Lang }) {
+  const [open, setOpen] = useState(false);
+  const labels = copy[lang];
+
+  useEffect(() => {
+    if (!open) return;
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [open]);
+
+  return (
+    <>
+      <button type="button" className="details-picker-trigger" onClick={() => setOpen(true)} aria-haspopup="dialog">
+        {labels.open}
+      </button>
+      {open && createPortal(
+        <div className="map-picker-shell" role="dialog" aria-modal="true" aria-labelledby="details-picker-title">
+          <button className="map-picker-backdrop" type="button" onClick={() => setOpen(false)} aria-label={labels.close} />
+          <section className="map-picker-drawer">
+            <div className="map-picker-handle" aria-hidden="true" />
+            <div className="map-picker-header">
+              <div><p>PLAYA / 2026</p><h2 id="details-picker-title">{labels.chooseDetails}</h2></div>
+              <button type="button" onClick={() => setOpen(false)} aria-label={labels.close}>×</button>
+            </div>
+            <div className="map-picker-options">
+              <a href={websiteUrl} target="_blank" rel="noreferrer" onClick={() => setOpen(false)}><span className="destination-icon website-icon">↗</span><strong>{labels.website}</strong><span>↗</span></a>
+              {iBurnUrl && <a href={iBurnUrl} target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)}><span className="destination-icon iburn-icon">iB</span><strong>{labels.iburn}</strong><span>↗</span></a>}
+            </div>
+          </section>
+        </div>,
+        document.body,
+      )}
+    </>
+  );
+}
+
 function EventCard({ event, lang, day, now, saved, sharing, onSave, onPreview, onShare }: { event: EventItem; lang: Lang; day: number; now: number; saved: boolean; sharing: boolean; onSave: () => void; onPreview: () => void; onShare: () => void }) {
   const category = normalizeCategory(event.category);
   const meta = categoryMeta[category] || categoryMeta.other;
@@ -994,9 +1037,8 @@ function EventCard({ event, lang, day, now, saved, sharing, onSave, onPreview, o
         <div className="card-footer">
           <div className="card-footer-copy">
             <div className="event-links">
-              <a href={event.link} target="_blank" rel="noreferrer">{copy[lang].open} ↗</a>
+              <EventDetailsPicker websiteUrl={event.link} iBurnUrl={iBurnUrl} lang={lang} />
               <MapAppPicker appleUrl={appleMapUrl} googleUrl={googleMapUrl} lang={lang} className="location-link" />
-              {iBurnUrl && <a className="location-link" href={iBurnUrl} target="_blank" rel="noopener noreferrer">{copy[lang].iburn} ↗</a>}
             </div>
             <span>
               <em>{lang === "en" ? meta.en : meta.zh}</em>
@@ -1681,9 +1723,8 @@ export default function Home() {
             </section>
 
             <div className="event-reader-links">
-              <a href={eventPreview.event.link} target="_blank" rel="noreferrer">{t.open} ↗</a>
+              <EventDetailsPicker websiteUrl={eventPreview.event.link} iBurnUrl={previewIBurnUrl} lang={lang} />
               <MapAppPicker appleUrl={previewAppleMapUrl} googleUrl={previewGoogleMapUrl} lang={lang} />
-              {previewIBurnUrl && <a href={previewIBurnUrl} target="_blank" rel="noopener noreferrer">{t.iburn} ↗</a>}
             </div>
 
             <div className="event-reader-actions">
