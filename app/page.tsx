@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, Copy, MapPin, Share2 } from "lucide-react";
+import { Check, Copy, MapPin, Share2, Waypoints } from "lucide-react";
 import {
   createSharedEventUrl,
   createSharedPlanUrl,
@@ -1522,6 +1522,7 @@ export default function Home() {
           <span><strong>{t.navTitle}</strong><small>{t.navSub}</small></span>
         </a>
         <div className="nav-actions">
+          <a className="graph-nav" href="/graph"><Waypoints aria-hidden="true" /><span>Event graph</span></a>
           <label className="nav-search">
             <span aria-hidden="true">⌕</span>
             <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t.search} aria-label={t.search} />
