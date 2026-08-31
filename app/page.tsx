@@ -17,6 +17,7 @@ type EventItem = {
 };
 
 type ShareAsset = {
+  kind: "event" | "plan";
   url: string;
   filename: string;
   caption: string;
@@ -92,6 +93,9 @@ const copy = {
     copyCaption: "Copy caption",
     captionCopied: "Copied",
     generating: "Generating share card",
+    sharePlan: "Share image",
+    sharePlanTitle: "Share My Playa",
+    generatingPlan: "Generating…",
     footerTitle: "Built for serendipity, not certainty.",
     footerCopy: "Times and locations can shift on playa. Follow the link for the latest source details — then stay open to the detour.",
     source: "Original event list",
@@ -137,6 +141,9 @@ const copy = {
     copyCaption: "复制文案",
     captionCopied: "已复制",
     generating: "正在生成分享卡片",
+    sharePlan: "分享图片",
+    sharePlanTitle: "分享我的 Playa",
+    generatingPlan: "生成中……",
     footerTitle: "为偶遇而做，不为确定而生。",
     footerCopy: "Playa 上的时间和地点可能随时变化。出发前可通过原始链接确认——也别忘了给意外留一点空间。",
     source: "原始活动清单",
@@ -335,6 +342,140 @@ async function createEventShareCard(event: EventItem, lang: Lang, selectedDay: n
   });
 }
 
+function truncateCanvasText(context: CanvasRenderingContext2D, text: string, maxWidth: number) {
+  if (context.measureText(text).width <= maxWidth) return text;
+  let shortened = text;
+  while (shortened && context.measureText(`${shortened}…`).width > maxWidth) shortened = shortened.slice(0, -1);
+  return `${shortened}…`;
+}
+
+async function createPlanShareCard(events: EventItem[], lang: Lang) {
+  const width = 1080;
+  const rowHeight = 116;
+  const maxEvents = 130;
+  const sorted = [...events].sort((left, right) => {
+    const leftDay = eventDayIndex(left, -1);
+    const rightDay = eventDayIndex(right, -1);
+    return leftDay - rightDay || left.times[leftDay].localeCompare(right.times[rightDay]) || left.title.localeCompare(right.title);
+  });
+  const visibleEvents = sorted.slice(0, maxEvents);
+  const remaining = Math.max(0, sorted.length - visibleEvents.length);
+  const listHeight = visibleEvents.length * rowHeight + (remaining ? 72 : 0);
+  const height = Math.min(16000, Math.max(1350, 370 + listHeight + 190));
+  const padding = 70;
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Canvas is unavailable");
+  const font = lang === "zh" ? '"PingFang SC", "Microsoft YaHei", system-ui, sans-serif' : 'system-ui, -apple-system, "Segoe UI", sans-serif';
+
+  context.fillStyle = "#f4efe5";
+  context.fillRect(0, 0, width, height);
+  context.save();
+  context.globalAlpha = 0.075;
+  context.strokeStyle = "#171713";
+  context.lineWidth = 1;
+  for (let x = 0; x <= width; x += 42) {
+    context.beginPath(); context.moveTo(x, 0); context.lineTo(x, height); context.stroke();
+  }
+  for (let y = 0; y <= height; y += 42) {
+    context.beginPath(); context.moveTo(0, y); context.lineTo(width, y); context.stroke();
+  }
+  context.restore();
+
+  const header = context.createLinearGradient(0, 0, width, 320);
+  header.addColorStop(0, "#171713");
+  header.addColorStop(0.65, "#332a22");
+  header.addColorStop(1, "#ef5b36");
+  context.fillStyle = header;
+  context.fillRect(0, 0, width, 315);
+
+  context.fillStyle = "rgba(255,255,255,.12)";
+  context.beginPath(); context.arc(905, 122, 190, 0, Math.PI * 2); context.fill();
+  context.strokeStyle = "rgba(255,255,255,.55)";
+  context.lineWidth = 3;
+  context.beginPath(); context.ellipse(862, 142, 220, 68, -0.28, 0, Math.PI * 2); context.stroke();
+
+  context.fillStyle = "#ef5b36";
+  context.font = `700 24px ${font}`;
+  context.fillText("PLAYA / 2026", padding, 66);
+  context.fillStyle = "#ffffff";
+  context.font = `800 72px ${font}`;
+  context.fillText(lang === "en" ? "MY PLAYA" : "我的 PLAYA", padding, 160);
+  context.font = `500 28px ${font}`;
+  context.fillStyle = "rgba(255,255,255,.76)";
+  context.fillText(lang === "en" ? "A personal week in the dust" : "我在尘土里的一周", padding, 210);
+
+  const countLabel = lang === "en" ? `${sorted.length} SAVED EVENTS` : `已收藏 ${sorted.length} 场活动`;
+  context.font = `700 24px ${font}`;
+  const countWidth = context.measureText(countLabel).width + 44;
+  context.fillStyle = "rgba(255,255,255,.16)";
+  context.beginPath(); context.roundRect(padding, 242, countWidth, 48, 24); context.fill();
+  context.fillStyle = "#ffffff";
+  context.textBaseline = "middle";
+  context.fillText(countLabel, padding + 22, 266);
+  context.textBaseline = "alphabetic";
+
+  let y = 355;
+  visibleEvents.forEach((event, index) => {
+    const shownDay = eventDayIndex(event, -1);
+    const category = normalizeCategory(event.type);
+    const meta = categoryMeta[category] || categoryMeta.othr;
+    const location = event.where !== "-" ? event.where : event.camp;
+    const cardY = y + index * rowHeight;
+
+    context.fillStyle = index % 2 ? "rgba(255,255,255,.72)" : "rgba(255,255,255,.9)";
+    context.beginPath(); context.roundRect(padding, cardY, width - padding * 2, 100, 18); context.fill();
+    context.fillStyle = categoryColors[category] || categoryColors.othr;
+    context.beginPath(); context.roundRect(padding, cardY, 10, 100, 5); context.fill();
+
+    context.fillStyle = "#171713";
+    context.font = `800 27px ${font}`;
+    context.fillText(String(index + 1).padStart(2, "0"), padding + 30, cardY + 42);
+    context.fillStyle = "#847c70";
+    context.font = `700 18px ${font}`;
+    context.fillText(`${days[shownDay][lang === "en" ? 0 : 1]} · ${days[shownDay][2]}`, padding + 30, cardY + 72);
+
+    context.fillStyle = categoryColors[category] || categoryColors.othr;
+    context.font = `700 18px ${font}`;
+    context.fillText(`${meta.mark} ${event.times[shownDay]}`, padding + 142, cardY + 31);
+    context.fillStyle = "#171713";
+    context.font = `800 28px ${font}`;
+    context.fillText(truncateCanvasText(context, event.title, 650), padding + 142, cardY + 65);
+    context.fillStyle = "#71695e";
+    context.font = `500 20px ${font}`;
+    context.fillText(truncateCanvasText(context, location, 650), padding + 142, cardY + 89);
+  });
+
+  y += visibleEvents.length * rowHeight;
+  if (remaining) {
+    context.fillStyle = "#6f675c";
+    context.font = `600 23px ${font}`;
+    context.fillText(lang === "en" ? `+ ${remaining} more saved events at playa.intelchen.com` : `另有 ${remaining} 场收藏活动，请前往 playa.intelchen.com 查看`, padding, y + 36);
+  }
+
+  const footerY = height - 145;
+  context.strokeStyle = "rgba(23,23,19,.2)";
+  context.lineWidth = 2;
+  context.beginPath(); context.moveTo(padding, footerY); context.lineTo(width - padding, footerY); context.stroke();
+  context.fillStyle = "#171713";
+  context.font = `800 29px ${font}`;
+  context.fillText("PLAYA / 2026", padding, footerY + 50);
+  context.fillStyle = "#6d665b";
+  context.font = `500 22px ${font}`;
+  context.fillText(lang === "en" ? "Times shift. Follow the link, then follow the detour." : "时间可能变化。先确认链接，也给意外留一点空间。", padding, footerY + 88);
+  context.fillStyle = "#ef5b36";
+  context.font = `700 25px ${font}`;
+  context.textAlign = "right";
+  context.fillText("playa.intelchen.com", width - padding, footerY + 69);
+  context.textAlign = "left";
+
+  return await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("Could not create list image")), "image/png");
+  });
+}
+
 function EventCard({ event, lang, day, saved, sharing, onSave, onShare }: { event: EventItem; lang: Lang; day: number; saved: boolean; sharing: boolean; onSave: () => void; onShare: () => void }) {
   const category = normalizeCategory(event.type);
   const meta = categoryMeta[category] || categoryMeta.othr;
@@ -394,6 +535,7 @@ export default function Home() {
   const [planOpen, setPlanOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [sharingUid, setSharingUid] = useState<string | null>(null);
+  const [sharingPlan, setSharingPlan] = useState(false);
   const [shareAsset, setShareAsset] = useState<ShareAsset | null>(null);
   const [captionCopied, setCaptionCopied] = useState(false);
   const t = copy[lang];
@@ -521,9 +663,40 @@ export default function Home() {
       const blob = await createEventShareCard(event, lang, day);
       const safeTitle = event.title.replace(/[\\/:*?"<>|]/g, "").slice(0, 70) || "event";
       const filename = `playa-2026-${safeTitle}.png`;
-      setShareAsset({ url: URL.createObjectURL(blob), filename, caption, title: event.title });
+      setShareAsset({ kind: "event", url: URL.createObjectURL(blob), filename, caption, title: event.title });
     } finally {
       setSharingUid(null);
+    }
+  }
+
+  async function sharePlanImage() {
+    if (sharingPlan || !savedEvents.length) return;
+    setSharingPlan(true);
+    try {
+      const sorted = [...savedEvents].sort((left, right) => {
+        const leftDay = eventDayIndex(left, -1);
+        const rightDay = eventDayIndex(right, -1);
+        return leftDay - rightDay || left.times[leftDay].localeCompare(right.times[rightDay]) || left.title.localeCompare(right.title);
+      });
+      const lines = sorted.slice(0, 24).map((event, index) => {
+        const shownDay = eventDayIndex(event, -1);
+        const location = event.where !== "-" ? event.where : event.camp;
+        return `${index + 1}. ${event.title} — ${days[shownDay][lang === "en" ? 0 : 1]} ${days[shownDay][2]} · ${event.times[shownDay]} · ${location}`;
+      });
+      if (sorted.length > lines.length) lines.push(lang === "en" ? `+ ${sorted.length - lines.length} more events` : `另有 ${sorted.length - lines.length} 场活动`);
+      const caption = lang === "en"
+        ? `✦ My Playa · ${sorted.length} saved events\n\n${lines.join("\n")}\n\nBuild yours: https://playa.intelchen.com`
+        : `✦ 我的 Playa · 已收藏 ${sorted.length} 场活动\n\n${lines.join("\n")}\n\n制作你的清单：https://playa.intelchen.com`;
+      const blob = await createPlanShareCard(sorted, lang);
+      setShareAsset({
+        kind: "plan",
+        url: URL.createObjectURL(blob),
+        filename: "playa-2026-my-playa.png",
+        caption,
+        title: lang === "en" ? "My Playa" : "我的 Playa",
+      });
+    } finally {
+      setSharingPlan(false);
     }
   }
 
@@ -691,7 +864,10 @@ export default function Home() {
           </div>
           <div className="plan-footer">
             <button onClick={clearSaved} disabled={!savedEvents.length}>{t.clearAll}</button>
-            <button className="copy-plan" onClick={copyPlan} disabled={!savedEvents.length}>{copied ? t.copied : t.copyList} ↗</button>
+            <div className="plan-footer-actions">
+              <button className="share-plan" onClick={sharePlanImage} disabled={!savedEvents.length || sharingPlan}>{sharingPlan ? t.generatingPlan : t.sharePlan} ↗</button>
+              <button className="copy-plan" onClick={copyPlan} disabled={!savedEvents.length}>{copied ? t.copied : t.copyList}</button>
+            </div>
           </div>
         </aside>
       </div>
@@ -701,7 +877,7 @@ export default function Home() {
           <section className="share-dialog" role="dialog" aria-modal="true" aria-labelledby="share-title">
             <button className="share-close" onClick={closeShare} aria-label={t.close}>×</button>
             <p className="share-kicker">PLAYA / 2026</p>
-            <h2 id="share-title">{t.shareTitle}</h2>
+            <h2 id="share-title">{shareAsset.kind === "plan" ? t.sharePlanTitle : t.shareTitle}</h2>
             <p className="share-hint">{t.shareHint}</p>
             <img className="share-preview" src={shareAsset.url} alt={`${shareAsset.title} share card`} />
             <textarea className="share-caption" value={shareAsset.caption} readOnly aria-label={t.copyCaption} />
