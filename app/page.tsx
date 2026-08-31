@@ -40,6 +40,7 @@ const eventDateKeys = ["2026-08-30", "2026-08-31", "2026-09-01", "2026-09-02", "
 const brcTimeZone = "America/Los_Angeles";
 const minuteMs = 60_000;
 const dayMinutes = 24 * 60;
+const eventClockEpoch = Date.UTC(2026, 7, 30, 7);
 const brcClockFormatter = new Intl.DateTimeFormat("en-US", {
   timeZone: brcTimeZone,
   year: "numeric",
@@ -644,7 +645,7 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("all");
   const [day, setDay] = useState(-1);
-  const [clockNow, setClockNow] = useState(() => Date.now());
+  const [clockNow, setClockNow] = useState(eventClockEpoch);
   const [limit, setLimit] = useState(36);
   const [savedOnly, setSavedOnly] = useState(false);
   const [saved, setSaved] = useState<Set<string>>(new Set());
@@ -664,8 +665,12 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    const frame = window.requestAnimationFrame(() => setClockNow(Date.now()));
     const clock = window.setInterval(() => setClockNow(Date.now()), minuteMs);
-    return () => window.clearInterval(clock);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearInterval(clock);
+    };
   }, []);
 
   useEffect(() => {
