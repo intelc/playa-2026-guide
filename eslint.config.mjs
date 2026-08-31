@@ -11,6 +11,7 @@ const eslintConfig = defineConfig([
   globalIgnores([
     ".next/**",
     "dist/**",
+    "netlify-dist/**",
     "out/**",
     "build/**",
     "next-env.d.ts",
@@ -23,6 +24,11 @@ const eslintConfig = defineConfig([
   jsxA11y.flatConfigs.recommended,
   next.configs["core-web-vitals"],
   {
+    rules: {
+      // This app intentionally hydrates browser storage and URL state after
+      // mount; those state transitions are synchronization, not derivation.
+      "react-hooks/set-state-in-effect": "off",
+    },
     languageOptions: {
       globals: {
         ...globals.browser,

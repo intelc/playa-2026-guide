@@ -1,3 +1,4 @@
+import { enrichEventsWithCampLocations } from "../../lib/camp-location.mjs";
 import { mergeBilingualEventRows } from "../../lib/bilingual-events.mjs";
 
 export const WEBSITE_URL = "https://playa.intelchen.com";
@@ -23,6 +24,18 @@ export type EventItem = {
   extra: string;
   link: string;
   times: string[];
+  /** 2026 official camp coordinate when the camp name has an unambiguous match. */
+  location?: EventLocation;
+};
+
+export type EventLocation = {
+  source: "camp";
+  label_point: { longitude: number; latitude: number };
+  playa_address?: string;
+  playa_address_source?: "official_2026_camp_api" | "curated_2026_lookup" | "official_2026_gis_inference";
+  playa_address_confidence?: "high" | "reviewed" | "approximate";
+  playa_address_distance_m?: number;
+  playa_address_checked_at?: string;
 };
 
 type Cell = { v?: string | number | null } | null;
@@ -141,5 +154,5 @@ export async function getEvents(lang: EventLanguage): Promise<EventItem[]> {
     lang,
     sheetLinks: { en: SHEET_LINK, zh: CHINESE_SHEET_LINK },
   }) as EventItem[];
-  return events;
+  return enrichEventsWithCampLocations(events) as Promise<EventItem[]>;
 }

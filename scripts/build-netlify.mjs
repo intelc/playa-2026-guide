@@ -33,7 +33,9 @@ try {
         html = await response.text();
         break;
       }
-    } catch {}
+    } catch {
+      // The server can take a moment to accept connections after startup.
+    }
     await new Promise((resolvePromise) => setTimeout(resolvePromise, 500));
   }
   if (!html) throw new Error("Could not render the production homepage");

@@ -1,4 +1,4 @@
-import { EVENT_DATES, getEvents, SHEET_LINK, WEBSITE_URL } from "./event-data.mjs";
+import { EVENT_DATES, getEvents, getSheetLink, WEBSITE_URL } from "./event-data.mjs";
 
 const categories = ["all", "prty", "arts", "work", "food", "tea", "adlt", "kid", "othr"];
 const aliases = {
@@ -70,7 +70,7 @@ export default async (request) => {
       api_version: "2026-08-31",
       website: WEBSITE_URL,
       endpoint,
-      source: { name: "Burning Man 2026 public event spreadsheet", url: SHEET_LINK },
+      source: { name: "Burning Man 2026 public event spreadsheet", url: getSheetLink(lang) },
       query: { q, lang, category, day: day === null ? null : { index: day, date: EVENT_DATES[day] }, limit, offset },
       count: page.length,
       total: matched.length,

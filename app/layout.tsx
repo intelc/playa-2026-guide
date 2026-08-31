@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { onboardingScript } from "@/lib/onboarding";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -26,9 +27,8 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const onboardingScript = `try{document.documentElement.dataset.playaReturning=localStorage.getItem("playa-entered")==="1"?"true":"false"}catch(e){document.documentElement.dataset.playaReturning="false"}`;
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head><script dangerouslySetInnerHTML={{ __html: onboardingScript }} /></head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>{children}</body>
     </html>

@@ -1,0 +1,1 @@
+export const onboardingScript = `try{const p=new URLSearchParams(location.search);const encoded=Boolean(p.get("e"))&&(p.get("p")==="1"||p.get("event")==="1");document.documentElement.dataset.playaReturning=encoded||localStorage.getItem("playa-entered")==="1"?"true":"false"}catch(e){document.documentElement.dataset.playaReturning="false"}`;

@@ -3,9 +3,9 @@ import {
   EVENT_DATES,
   filterEvents,
   getEvents,
+  getSheetLink,
   parseSearchOptions,
   SearchInputError,
-  SHEET_LINK,
   WEBSITE_URL,
 } from "../events-data";
 
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       api_version: "2026-08-31",
       website: WEBSITE_URL,
       endpoint,
-      source: { name: "Burning Man 2026 public event spreadsheet", url: SHEET_LINK },
+      source: { name: "Burning Man 2026 public event spreadsheet", url: getSheetLink(options.lang) },
       query: {
         q: options.q,
         lang: options.lang,

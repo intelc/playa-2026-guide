@@ -12,16 +12,16 @@ function row(values) {
 }
 
 const times = ["18:00-19:00", "-", "-", "-", "-", "-", "-", "-", "-"];
-const englishHeader = row(Array(17).fill("header"));
+const englishHeader = row(Array(18).fill("header"));
 const chineseCredit = row(["credit"]);
-const chineseHeader = row(Array(18).fill("标题"));
+const chineseHeader = row(Array(19).fill("标题"));
 
 function englishEvent({ link = "-", uid = "event-1" } = {}) {
-  return row([...times, "English title", "English description", "prty", "Camp Name", "4:30 & A", "extra", link, uid]);
+  return row([...times, "English title", "English description", "prty", "tags", "Camp Name", "4:30 & A", "extra", link, uid]);
 }
 
 function chineseEvent({ link = "-", uid = "event-1" } = {}) {
-  return row([...times, "中文标题", "English title", "中文描述", "派对", "Camp Name", "4:30 & A", "补充", link, uid]);
+  return row([...times, "中文标题", "English title", "中文描述", "派对", "标签", "Camp Name", "4:30 & A", "补充", link, uid]);
 }
 
 test("normalizes official event URLs without losing meaningful art anchors", () => {

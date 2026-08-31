@@ -1,3 +1,4 @@
+import { enrichEventsWithCampLocations } from "../../lib/camp-location.mjs";
 import { mergeBilingualEventRows } from "../../lib/bilingual-events.mjs";
 
 export const WEBSITE_URL = "https://playa.intelchen.com";
@@ -35,12 +36,13 @@ export async function getEvents(lang) {
   const cached = cache.get(key);
   if (cached && Date.now() - cached.loadedAt < 15 * 60 * 1000) return cached.events;
   const [englishRows, chineseRows] = await Promise.all([fetchSheetRows("en"), fetchSheetRows("zh")]);
-  const events = mergeBilingualEventRows({
+  const localizedEvents = mergeBilingualEventRows({
     englishRows,
     chineseRows,
     lang: key,
     sheetLinks: { en: SHEET_LINK, zh: CHINESE_SHEET_LINK },
   });
+  const events = await enrichEventsWithCampLocations(localizedEvents);
   cache.set(key, { events, loadedAt: Date.now() });
   return events;
 }
