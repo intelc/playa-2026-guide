@@ -41,6 +41,8 @@ export default function EventGraphPage() {
   const nodesRef = useRef<Node[]>([]);
   const cameraRef = useRef<Camera>({ x: 0, y: 0, scale: .42 });
   const pointerRef = useRef<{ x: number; y: number; node: Node | null; moved: boolean } | null>(null);
+  const touchPointersRef = useRef(new Map<number, { x: number; y: number }>());
+  const pinchRef = useRef<{ distance: number; x: number; y: number } | null>(null);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -68,6 +70,23 @@ export default function EventGraphPage() {
 
   useEffect(() => { draw(); setVisibleCount(matches.size); }, [draw, matches]);
   useEffect(() => { const onResize = () => draw(); window.addEventListener("resize", onResize); return () => window.removeEventListener("resize", onResize); }, [draw]);
+  useEffect(() => {
+    const canvas = canvasRef.current; if (!canvas) return;
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      cameraRef.current.scale = Math.max(.12, Math.min(2.4, cameraRef.current.scale * (event.deltaY > 0 ? .88 : 1.14)));
+      setCameraVersion((version) => version + 1);
+    };
+    const preventGesture = (event: Event) => event.preventDefault();
+    canvas.addEventListener("wheel", onWheel, { passive: false });
+    canvas.addEventListener("gesturestart", preventGesture, { passive: false });
+    canvas.addEventListener("gesturechange", preventGesture, { passive: false });
+    return () => {
+      canvas.removeEventListener("wheel", onWheel);
+      canvas.removeEventListener("gesturestart", preventGesture);
+      canvas.removeEventListener("gesturechange", preventGesture);
+    };
+  }, []);
   const screenToWorld = (clientX: number, clientY: number) => { const rect = canvasRef.current!.getBoundingClientRect(); const cam = cameraRef.current; return { x: (clientX - rect.left - rect.width / 2) / cam.scale - cam.x, y: (clientY - rect.top - rect.height / 2) / cam.scale - cam.y }; };
   const hitNode = (clientX: number, clientY: number) => { const p = screenToWorld(clientX, clientY); let best: Node | null = null, distance = Infinity; nodesRef.current.forEach((node) => { if (node.kind === "event" && !matches.has(node.id)) return; const d = Math.hypot(node.x - p.x, node.y - p.y); const range = Math.max(node.radius, 9 / cameraRef.current.scale); if (d < range && d < distance) { best = node; distance = d; } }); return best; };
   const zoom = (factor: number) => { cameraRef.current.scale = Math.max(.12, Math.min(2.4, cameraRef.current.scale * factor)); setCameraVersion((v) => v + 1); };
@@ -90,10 +109,34 @@ export default function EventGraphPage() {
         {loading && <div className="graph-loading"><span />Mapping the playa…</div>}
         {!loading && events.length === 0 && <div className="graph-loading">The constellation couldn’t be loaded.</div>}
         <canvas ref={canvasRef} aria-label="Interactive graph of Playa 2026 events connected by shared tags"
-          onWheel={(e) => { e.preventDefault(); zoom(e.deltaY > 0 ? .88 : 1.14); }}
-          onPointerDown={(e) => { const node = hitNode(e.clientX, e.clientY); pointerRef.current = { x: e.clientX, y: e.clientY, node, moved: false }; e.currentTarget.setPointerCapture(e.pointerId); }}
-          onPointerMove={(e) => { const p = pointerRef.current; if (!p) return; const dx = e.clientX - p.x, dy = e.clientY - p.y; if (Math.abs(dx) + Math.abs(dy) > 2) p.moved = true; if (p.node) { p.node.x += dx / cameraRef.current.scale; p.node.y += dy / cameraRef.current.scale; } else { cameraRef.current.x += dx / cameraRef.current.scale; cameraRef.current.y += dy / cameraRef.current.scale; } p.x = e.clientX; p.y = e.clientY; setCameraVersion((v) => v + 1); }}
-          onPointerUp={(e) => { const p = pointerRef.current; if (p && !p.moved && p.node?.event) setSelected(p.node.event); pointerRef.current = null; e.currentTarget.releasePointerCapture(e.pointerId); }} />
+          onPointerDown={(e) => {
+            if (e.pointerType === "touch") {
+              touchPointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+              if (touchPointersRef.current.size === 2) {
+                const [a, b] = [...touchPointersRef.current.values()];
+                pinchRef.current = { distance: Math.hypot(a.x - b.x, a.y - b.y), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+                pointerRef.current = null;
+              }
+            }
+            if (touchPointersRef.current.size < 2) { const node = hitNode(e.clientX, e.clientY); pointerRef.current = { x: e.clientX, y: e.clientY, node, moved: false }; }
+            e.currentTarget.setPointerCapture(e.pointerId);
+          }}
+          onPointerMove={(e) => {
+            if (e.pointerType === "touch" && touchPointersRef.current.has(e.pointerId)) {
+              touchPointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+              if (touchPointersRef.current.size === 2) {
+                const [a, b] = [...touchPointersRef.current.values()]; const nextDistance = Math.hypot(a.x - b.x, a.y - b.y); const nextX = (a.x + b.x) / 2, nextY = (a.y + b.y) / 2; const pinch = pinchRef.current;
+                if (pinch && pinch.distance > 0) { cameraRef.current.scale = Math.max(.12, Math.min(2.4, cameraRef.current.scale * (nextDistance / pinch.distance))); cameraRef.current.x += (nextX - pinch.x) / cameraRef.current.scale; cameraRef.current.y += (nextY - pinch.y) / cameraRef.current.scale; }
+                pinchRef.current = { distance: nextDistance, x: nextX, y: nextY }; setCameraVersion((v) => v + 1); return;
+              }
+            }
+            const p = pointerRef.current; if (!p) return; const dx = e.clientX - p.x, dy = e.clientY - p.y; if (Math.abs(dx) + Math.abs(dy) > 2) p.moved = true; if (p.node) { p.node.x += dx / cameraRef.current.scale; p.node.y += dy / cameraRef.current.scale; } else { cameraRef.current.x += dx / cameraRef.current.scale; cameraRef.current.y += dy / cameraRef.current.scale; } p.x = e.clientX; p.y = e.clientY; setCameraVersion((v) => v + 1);
+          }}
+          onPointerUp={(e) => {
+            touchPointersRef.current.delete(e.pointerId); if (touchPointersRef.current.size < 2) pinchRef.current = null;
+            const p = pointerRef.current; if (p && !p.moved && p.node?.event) setSelected(p.node.event); pointerRef.current = null; e.currentTarget.releasePointerCapture(e.pointerId);
+          }}
+          onPointerCancel={(e) => { touchPointersRef.current.delete(e.pointerId); pointerRef.current = null; pinchRef.current = null; }} />
         <div className="graph-zoom"><button onClick={() => zoom(1.25)} aria-label="Zoom in"><Plus /></button><button onClick={() => zoom(.8)} aria-label="Zoom out"><Minus /></button><button onClick={reset} aria-label="Reset view"><LocateFixed /></button></div>
         <div className="graph-tip"><span>CLICK + DRAG</span> to wander the graph</div>
       </div>
