@@ -13,10 +13,14 @@ test("returns coordinates only for a validated official 2026 camp point", () => 
   assert.equal(getOfficialCampCoordinates({ ...officialCampLocation, label_point: { longitude: "-119.2064", latitude: 40.7864 } }), null);
 });
 
-test("creates an HTTPS map link for a validated official 2026 camp point", () => {
+test("creates Apple and Google map links for a validated official 2026 camp point", () => {
   assert.equal(
     getOfficialCampMapUrl(officialCampLocation),
-    "https://www.openstreetmap.org/?mlat=40.7864&mlon=-119.2064#map=18/40.7864/-119.2064",
+    "https://www.google.com/maps/search/?api=1&query=40.7864,-119.2064",
+  );
+  assert.equal(
+    getOfficialCampMapUrl(officialCampLocation, "apple"),
+    "https://maps.apple.com/?ll=40.7864,-119.2064&z=18",
   );
 });
 

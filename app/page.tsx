@@ -149,6 +149,8 @@ const copy = {
     loadingMore: "Loading more events",
     open: "Event details",
     viewMap: "View location",
+    appleMaps: "Apple Maps",
+    googleMaps: "Google Maps",
     location: "Location",
     savedOnly: "Saved only",
     save: "Save event",
@@ -220,6 +222,8 @@ const copy = {
     loadingMore: "正在加载更多活动",
     open: "查看详情",
     viewMap: "查看位置",
+    appleMaps: "Apple 地图",
+    googleMaps: "Google 地图",
     location: "地点",
     savedOnly: "只看收藏",
     save: "收藏活动",
@@ -920,7 +924,8 @@ function EventCard({ event, lang, day, now, saved, sharing, onSave, onPreview, o
   const happened = occurrenceHasEnded(event.times[shownDay], shownDay, now);
   const locationDetails = getEventLocationDetails(event);
   const addressProvenance = formatAddressProvenance(event, lang);
-  const mapUrl = getOfficialCampMapUrl(event.location);
+  const appleMapUrl = getOfficialCampMapUrl(event.location, "apple");
+  const googleMapUrl = getOfficialCampMapUrl(event.location, "google");
 
   return (
     <article className={`event-card category-${category} ${happened ? "is-past" : ""}`}>
@@ -943,7 +948,8 @@ function EventCard({ event, lang, day, now, saved, sharing, onSave, onPreview, o
           <div className="card-footer-copy">
             <div className="event-links">
               <a href={event.link} target="_blank" rel="noreferrer">{copy[lang].open} ↗</a>
-              {mapUrl && <a className="location-link" href={mapUrl} target="_blank" rel="noopener noreferrer">{copy[lang].viewMap} ↗</a>}
+              {appleMapUrl && <a className="location-link" href={appleMapUrl} target="_blank" rel="noopener noreferrer">{copy[lang].appleMaps} ↗</a>}
+              {googleMapUrl && <a className="location-link" href={googleMapUrl} target="_blank" rel="noopener noreferrer">{copy[lang].googleMaps} ↗</a>}
             </div>
             <span>
               <em>{lang === "en" ? meta.en : meta.zh}</em>

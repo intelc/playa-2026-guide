@@ -62,14 +62,18 @@ export function getOfficialCampCoordinates(location: unknown): OfficialCampCoord
   return { longitude, latitude };
 }
 
-/** Produces a map URL for the same validated official camp point. */
-export function getOfficialCampMapUrl(location: unknown): string | null {
+export type MapProvider = "apple" | "google";
+
+/** Produces a provider-specific map URL for the same validated official camp point. */
+export function getOfficialCampMapUrl(location: unknown, provider: MapProvider = "google"): string | null {
   const point = getOfficialCampCoordinates(location);
   if (!point) return null;
 
   const lat = point.latitude.toString();
   const lon = point.longitude.toString();
-  return `https://www.openstreetmap.org/?mlat=${encodeURIComponent(lat)}&mlon=${encodeURIComponent(lon)}#map=18/${encodeURIComponent(lat)}/${encodeURIComponent(lon)}`;
+  const coordinates = `${encodeURIComponent(lat)},${encodeURIComponent(lon)}`;
+  if (provider === "apple") return `https://maps.apple.com/?ll=${coordinates}&z=18`;
+  return `https://www.google.com/maps/search/?api=1&query=${coordinates}`;
 }
 
 function isOfficialCampLocation(location: unknown): location is LocationRecord {
