@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Share2 } from "lucide-react";
+import { Check, Copy, Share2 } from "lucide-react";
 
 type Lang = "en" | "zh";
 
@@ -809,6 +809,7 @@ export default function Home() {
 
   return (
     <main>
+      <p className="sr-only" role="status" aria-live="polite">{agentCopied ? t.agentCopied : ""}</p>
       <nav className="site-nav">
         <a href="#top" className="wordmark" aria-label="Playa 2026 home">
           <span className="wordmark-symbol">P</span>
@@ -820,9 +821,6 @@ export default function Home() {
             <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t.search} aria-label={t.search} />
           </label>
           <button className="saved-nav" onClick={() => setPlanOpen(true)}>★ {saved.size}</button>
-          <button className="agent-nav" onClick={copyAgentContext} aria-live="polite" aria-label={t.copyToAgent}>
-            <span aria-hidden="true">✦</span><strong>{agentCopied ? t.agentCopiedShort : "Agent"}</strong>
-          </button>
           <button className="language-toggle" onClick={() => setLang(lang === "en" ? "zh" : "en")} aria-label="Switch language">
             <span className={lang === "en" ? "active" : ""}>EN</span><span className={lang === "zh" ? "active" : ""}>中</span>
           </button>
@@ -838,8 +836,9 @@ export default function Home() {
           <p className="hero-intro">{t.intro}</p>
           <div className="hero-entry-actions">
             <button className="hero-cta" onClick={enterPlaya}>{t.makeMyList}</button>
-            <button className="agent-copy-cta" onClick={copyAgentContext} aria-live="polite">
-              <span aria-hidden="true">✦</span>{agentCopied ? t.agentCopied : t.copyToAgent}
+            <button className={`agent-copy-cta agent-copy-hero ${agentCopied ? "is-copied" : ""}`} onClick={copyAgentContext} aria-label={agentCopied ? t.agentCopied : t.copyToAgent}>
+              {agentCopied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+              <span>{agentCopied ? t.agentCopied : t.copyToAgent}</span>
             </button>
             <div className="source-stamp"><span />{t.updated}</div>
           </div>
@@ -858,9 +857,15 @@ export default function Home() {
       <section className="directory" id="events">
         <div className="section-heading">
           <div><p>{t.exploreSub}</p><h2>{t.explore}</h2></div>
-          <div className="saved-actions">
-            <button className="open-plan" onClick={() => setPlanOpen(true)}>★ {t.myPlaya} <span>{saved.size}</span></button>
-            <button className={`saved-filter ${savedOnly ? "active" : ""}`} onClick={() => setSavedOnly(!savedOnly)} aria-pressed={savedOnly}>{t.savedOnly}</button>
+          <div className="directory-actions">
+            <div className="saved-actions">
+              <button className="open-plan" onClick={() => setPlanOpen(true)}>★ {t.myPlaya} <span>{saved.size}</span></button>
+              <button className={`saved-filter ${savedOnly ? "active" : ""}`} onClick={() => setSavedOnly(!savedOnly)} aria-pressed={savedOnly}>{t.savedOnly}</button>
+            </div>
+            <button className={`agent-copy-cta agent-copy-directory ${agentCopied ? "is-copied" : ""}`} onClick={copyAgentContext} aria-label={agentCopied ? t.agentCopied : t.copyToAgent}>
+              {agentCopied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+              <span>{agentCopied ? t.agentCopied : t.copyToAgent}</span>
+            </button>
           </div>
         </div>
 
