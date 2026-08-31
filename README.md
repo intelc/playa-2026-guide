@@ -10,13 +10,16 @@ Drizzle support.
 
 ## Quick Start
 
+Open the live guide at [playa.intelchen.com](https://playa.intelchen.com), or run it locally:
+
 ```bash
+git clone https://github.com/intelc/playa-2026-guide.git
+cd playa-2026-guide
 npm install
 npm run dev
-npm run build
 ```
 
-This starter does not use `wrangler.jsonc`.
+Then visit [http://localhost:3000](http://localhost:3000). Event data is read from the public Burning Man 2026 Google Sheet, and saved “My Playa” events stay in the current browser’s local storage.
 
 ## Included Shape
 
