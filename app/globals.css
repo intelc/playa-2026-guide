@@ -478,6 +478,12 @@ footer a { border: 1px solid rgba(255,255,255,.35); border-radius: 999px; paddin
 .graph-search input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; font-size: 11px; }
 .graph-search button { width: 26px; height: 26px; padding: 0; display: grid; place-items: center; border: 0; border-radius: 50%; background: #eee8dd; cursor: pointer; }
 .graph-search button svg { width: 13px; }
+.graph-days { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(44px, 1fr); margin: 14px -24px 0; padding: 0 24px 10px; overflow-x: auto; scrollbar-width: none; }
+.graph-days::-webkit-scrollbar { display: none; }
+.graph-days button { min-width: 46px; height: 48px; display: grid; place-items: center; align-content: center; gap: 2px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #71695e; cursor: pointer; }
+.graph-days button strong { font: 800 8px var(--font-geist-mono); letter-spacing: .05em; }
+.graph-days button span { font-size: 9px; }
+.graph-days button.active { border-bottom-color: var(--ember); color: var(--ink); background: rgba(239,91,54,.08); }
 .graph-categories { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
 .graph-categories button { padding: 7px 9px; border: 1px solid var(--line); border-radius: 999px; background: transparent; text-transform: capitalize; font-size: 9px; cursor: pointer; }
 .graph-categories button.active { border-color: var(--ink); background: var(--ink); color: white; }
@@ -520,6 +526,7 @@ footer a { border: 1px solid rgba(255,255,255,.35); border-radius: 999px; paddin
   .graph-workspace { height: calc(100dvh - 62px); display: block; }
   .graph-controls { position: absolute; z-index: 5; left: 10px; right: 10px; top: 10px; height: auto; padding: 12px; border: 1px solid var(--line); border-radius: 15px; overflow: hidden; }
   .graph-controls > div:first-child, .graph-legend { display: none; }
+  .graph-days { margin: 9px -12px 0; padding: 0 12px 4px; }
   .graph-categories { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
   .graph-categories button { flex: 0 0 auto; }
   .graph-canvas-wrap { height: 100%; }

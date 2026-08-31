@@ -9,6 +9,10 @@ type Camera = { x: number; y: number; scale: number };
 
 const colors: Record<string, string> = { party: "#6856c4", art: "#e85a39", community: "#4f8292", "food-drink": "#d9962d", healing: "#57966d", movement: "#c56f35", performance: "#b15176", spiritual: "#755aa6", workshop: "#7b9d68", adult: "#a04a6f", other: "#87909a" };
 const categories = ["all", ...Object.keys(colors)];
+const days = [
+  ["SUN", "8.30"], ["MON", "8.31"], ["TUE", "9.01"], ["WED", "9.02"], ["THU", "9.03"],
+  ["FRI", "9.04"], ["SAT", "9.05"], ["SUN", "9.06"], ["MON", "9.07"],
+];
 const cleanTag = (tag: string) => tag.replaceAll("_", " ").replaceAll("-", " ").trim();
 const normalizeCategory = (value: string) => {
   const normalized = value.trim().toLowerCase().replaceAll("&", "and").replace(/[\s_]+/g, "-");
@@ -52,12 +56,13 @@ export default function EventGraphPage() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("all");
+  const [day, setDay] = useState<number | null>(null);
   const [selected, setSelected] = useState<EventItem | null>(null);
   const [visibleCount, setVisibleCount] = useState(0);
   const [cameraVersion, setCameraVersion] = useState(0);
 
   useEffect(() => { fetch("/api/events?lang=en").then((r) => r.json()).then((data) => { setEvents(data.events || []); nodesRef.current = buildGraph(data.events || []); setLoading(false); }).catch(() => setLoading(false)); }, []);
-  const matches = useMemo(() => { const q = query.trim().toLowerCase(); return new Set(events.filter((event) => (category === "all" || normalizeCategory(event.category) === category) && (!q || [event.title, event.description, event.camp, ...event.tags].join(" ").toLowerCase().includes(q))).map((event) => event.uid)); }, [events, query, category]);
+  const matches = useMemo(() => { const q = query.trim().toLowerCase(); return new Set(events.filter((event) => (category === "all" || normalizeCategory(event.category) === category) && (day === null || Boolean(event.times[day] && event.times[day] !== "-")) && (!q || [event.title, event.description, event.camp, ...event.tags].join(" ").toLowerCase().includes(q))).map((event) => event.uid)); }, [events, query, category, day]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current; if (!canvas) return;
@@ -107,6 +112,10 @@ export default function EventGraphPage() {
       <aside className="graph-controls">
         <div><p className="graph-eyebrow">KNOWLEDGE GRAPH</p><h1>Follow the<br/><em>connections.</em></h1><p>Every dot is an event. Shared topics pull them into constellations. Drag the field, zoom in, and pick a node to explore.</p></div>
         <label className="graph-search"><Search /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search events, camps, tags…" />{query && <button onClick={() => setQuery("")} aria-label="Clear search"><X /></button>}</label>
+        <div className="graph-days" aria-label="Filter by date">
+          <button className={day === null ? "active" : ""} onClick={() => setDay(null)}><strong>ALL</strong><span>days</span></button>
+          {days.map(([weekday, date], index) => <button key={date} className={day === index ? "active" : ""} onClick={() => setDay(index)}><strong>{weekday}</strong><span>{date}</span></button>)}
+        </div>
         <div className="graph-categories" aria-label="Filter by category">{categories.map((key) => <button key={key} className={category === key ? "active" : ""} onClick={() => setCategory(key)}>{key === "all" ? "All topics" : key.replace("-", " ")}</button>)}</div>
         <div className="graph-legend"><span><i className="legend-event" /> Event</span><span><i className="legend-tag" /> Shared tag</span><small>Drag a node to move it · Scroll to zoom</small></div>
       </aside>
