@@ -36,6 +36,24 @@ const days = [
   ["SUN", "周日", "9.06"],
   ["MON", "周一", "9.07"],
 ];
+const eventDateKeys = ["2026-08-30", "2026-08-31", "2026-09-01", "2026-09-02", "2026-09-03", "2026-09-04", "2026-09-05", "2026-09-06", "2026-09-07"];
+const brcTimeZone = "America/Los_Angeles";
+const minuteMs = 60_000;
+const dayMinutes = 24 * 60;
+const brcClockFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: brcTimeZone,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+  timeZoneName: "short",
+});
+const eventDayOrdinals = eventDateKeys.map((date) => {
+  const [year, month, day] = date.split("-").map(Number);
+  return Date.UTC(year, month - 1, day) / (dayMinutes * minuteMs);
+});
 
 const categoryOrder = ["all", "prty", "arts", "work", "food", "tea", "adlt", "kid", "othr"];
 const websiteUrl = "https://playa.intelchen.com";
@@ -80,7 +98,10 @@ const copy = {
     close: "Close",
     explore: "Explore the week",
     exploreSub: "Filter the dust. Keep the magic.",
-    allDays: "ALL DAYS",
+    allDays: "UPCOMING",
+    happened: "Happened",
+    pastShort: "Past",
+    brcTime: "BRC time",
     showing: "Showing",
     matches: "matches",
     empty: "No events found in this corner of the playa.",
@@ -132,7 +153,10 @@ const copy = {
     close: "关闭",
     explore: "探索这一周",
     exploreSub: "筛掉尘埃，留下惊喜。",
-    allDays: "全部日期",
+    allDays: "即将开始",
+    happened: "已结束",
+    pastShort: "已过",
+    brcTime: "黑石城时间",
     showing: "当前显示",
     matches: "个结果",
     empty: "这片 playa 暂时没有匹配的活动。",
@@ -184,10 +208,45 @@ const categoryColors: Record<string, string> = {
   othr: "#87909a",
 };
 
-function eventDayIndex(event: EventItem, selectedDay: number) {
+function getBrcClock(timestamp: number) {
+  const parts: Record<string, string> = {};
+  for (const part of brcClockFormatter.formatToParts(new Date(timestamp))) {
+    if (part.type !== "literal") parts[part.type] = part.value;
+  }
+  const ordinal = Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day)) / (dayMinutes * minuteMs);
+  const minute = Number(parts.hour) * 60 + Number(parts.minute);
+  return { ordinal, minute, label: `${parts.hour}:${parts.minute} ${parts.timeZoneName}` };
+}
+
+function occurrenceHasEnded(time: string, dayIndex: number, timestamp: number) {
+  if (!time || time === "-") return true;
+  const current = getBrcClock(timestamp);
+  const startOrdinal = eventDayOrdinals[dayIndex];
+  if (time === "All") return current.ordinal * dayMinutes + current.minute >= (startOrdinal + 1) * dayMinutes;
+  const match = time.match(/^(\d{2}):(\d{2})-(\d{2}):(\d{2})$/);
+  if (!match) return false;
+  const start = Number(match[1]) * 60 + Number(match[2]);
+  let end = Number(match[3]) * 60 + Number(match[4]);
+  if (end <= start) end += dayMinutes;
+  return current.ordinal * dayMinutes + current.minute >= startOrdinal * dayMinutes + end;
+}
+
+function eventHasUpcomingOccurrence(event: EventItem, timestamp: number) {
+  return event.times.some((time, index) => time && time !== "-" && !occurrenceHasEnded(time, index, timestamp));
+}
+
+function eventDayStatus(dayIndex: number, timestamp: number) {
+  const current = getBrcClock(timestamp);
+  if (current.ordinal > eventDayOrdinals[dayIndex]) return "past";
+  if (current.ordinal === eventDayOrdinals[dayIndex]) return "today";
+  return "future";
+}
+
+function eventDayIndex(event: EventItem, selectedDay: number, timestamp = Date.now()) {
   if (selectedDay >= 0 && event.times[selectedDay] && event.times[selectedDay] !== "-") return selectedDay;
-  const first = event.times.findIndex((time) => time && time !== "-");
-  return first >= 0 ? first : 0;
+  const activeDays = event.times.map((time, index) => (time && time !== "-" ? index : -1)).filter((index) => index >= 0);
+  const nextDay = activeDays.find((index) => !occurrenceHasEnded(event.times[index], index, timestamp));
+  return nextDay ?? activeDays.at(-1) ?? 0;
 }
 
 function wrapCanvasText(context: CanvasRenderingContext2D, text: string, maxWidth: number, lang: Lang) {
@@ -525,16 +584,16 @@ async function createPlanShareCard(events: EventItem[], lang: Lang) {
   });
 }
 
-function EventCard({ event, lang, day, saved, sharing, onSave, onShare }: { event: EventItem; lang: Lang; day: number; saved: boolean; sharing: boolean; onSave: () => void; onShare: () => void }) {
+function EventCard({ event, lang, day, now, saved, sharing, onSave, onShare }: { event: EventItem; lang: Lang; day: number; now: number; saved: boolean; sharing: boolean; onSave: () => void; onShare: () => void }) {
   const category = normalizeCategory(event.type);
   const meta = categoryMeta[category] || categoryMeta.othr;
-  const activeDays = event.times.map((time, index) => (time && time !== "-" ? index : -1)).filter((index) => index >= 0);
-  const shownDay = day >= 0 ? day : activeDays[0] ?? 0;
+  const shownDay = eventDayIndex(event, day, now);
+  const happened = occurrenceHasEnded(event.times[shownDay], shownDay, now);
   const location = event.where !== "-" ? event.where : event.camp;
 
   return (
     <article
-      className={`event-card category-${category}`}
+      className={`event-card category-${category} ${happened ? "is-past" : ""}`}
       tabIndex={0}
       aria-label={`${copy[lang].share}: ${event.title}`}
       onClick={(clickEvent) => {
@@ -551,7 +610,7 @@ function EventCard({ event, lang, day, saved, sharing, onSave, onShare }: { even
         <h3>{event.title}</h3>
         <div className="event-meta">
           <div>
-            <span>{days[shownDay][lang === "en" ? 0 : 1]} · {days[shownDay][2]}</span>
+            <span>{days[shownDay][lang === "en" ? 0 : 1]} · {days[shownDay][2]} {happened && <em className="happened-badge">{copy[lang].happened}</em>}</span>
             <strong>{event.times[shownDay]}</strong>
           </div>
           <div>
@@ -585,6 +644,7 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("all");
   const [day, setDay] = useState(-1);
+  const [clockNow, setClockNow] = useState(() => Date.now());
   const [limit, setLimit] = useState(36);
   const [savedOnly, setSavedOnly] = useState(false);
   const [saved, setSaved] = useState<Set<string>>(new Set());
@@ -601,6 +661,11 @@ export default function Home() {
   useEffect(() => {
     const stored = window.localStorage.getItem("playa-saved");
     if (stored) setSaved(new Set(JSON.parse(stored)));
+  }, []);
+
+  useEffect(() => {
+    const clock = window.setInterval(() => setClockNow(Date.now()), minuteMs);
+    return () => window.clearInterval(clock);
   }, []);
 
   useEffect(() => {
@@ -646,13 +711,18 @@ export default function Home() {
   }, [shareAsset]);
 
   const counts = useMemo(() => {
-    const result: Record<string, number> = { all: events.length };
+    const result: Record<string, number> = { all: 0 };
     for (const event of events) {
+      const matchesTime = day < 0
+        ? eventHasUpcomingOccurrence(event, clockNow)
+        : Boolean(event.times[day] && event.times[day] !== "-");
+      if (!matchesTime) continue;
+      result.all += 1;
       const key = normalizeCategory(event.type);
       result[key] = (result[key] || 0) + 1;
     }
     return result;
-  }, [events]);
+  }, [events, day, clockNow]);
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase();
@@ -660,11 +730,13 @@ export default function Home() {
       const eventCategory = normalizeCategory(event.type);
       const matchesQuery = !needle || [event.title, event.description, event.camp, event.where].join(" ").toLocaleLowerCase().includes(needle);
       const matchesCategory = category === "all" || eventCategory === category;
-      const matchesDay = day < 0 || (event.times[day] && event.times[day] !== "-");
+      const matchesDay = day < 0
+        ? eventHasUpcomingOccurrence(event, clockNow)
+        : Boolean(event.times[day] && event.times[day] !== "-");
       const matchesSaved = !savedOnly || saved.has(event.uid);
       return matchesQuery && matchesCategory && matchesDay && matchesSaved;
     });
-  }, [events, query, category, day, savedOnly, saved]);
+  }, [events, query, category, day, savedOnly, saved, clockNow]);
 
   const savedEvents = useMemo(() => events.filter((event) => saved.has(event.uid)), [events, saved]);
 
@@ -872,11 +944,14 @@ export default function Home() {
         <div className="filter-stack">
           <div className="day-strip" role="group" aria-label="Filter by day">
             <button className={day === -1 ? "active" : ""} onClick={() => setDay(-1)}><strong>{t.allDays}</strong><small>8.30 — 9.07</small></button>
-            {days.map((item, index) => (
-              <button key={item[2]} className={day === index ? "active" : ""} onClick={() => setDay(index)}>
-                <strong>{item[lang === "en" ? 0 : 1]}</strong><small>{item[2]}</small>
-              </button>
-            ))}
+            {days.map((item, index) => {
+              const status = eventDayStatus(index, clockNow);
+              return (
+                <button key={item[2]} className={`${day === index ? "active" : ""} ${status}`} onClick={() => setDay(index)}>
+                  <strong>{item[lang === "en" ? 0 : 1]}</strong><small>{item[2]} {status === "past" && <em>{t.pastShort}</em>}</small>
+                </button>
+              );
+            })}
           </div>
 
           <div className="filter-row">
@@ -896,7 +971,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="results-line"><span>{t.showing} <strong>{filtered.length.toLocaleString()}</strong> {t.matches}</span><i /></div>
+        <div className="results-line"><span>{t.showing} <strong>{filtered.length.toLocaleString()}</strong> {t.matches}</span><i /><em>{t.brcTime} · {getBrcClock(clockNow).label}</em></div>
 
         {loading ? (
           <div className="loading-grid" aria-label="Loading events">{Array.from({ length: 6 }).map((_, index) => <div key={index} />)}</div>
@@ -907,12 +982,12 @@ export default function Home() {
         ) : (
           <>
             <div className="event-grid desktop-event-grid">
-              {filtered.slice(0, limit).map((event) => <EventCard key={event.uid} event={event} lang={lang} day={day} saved={saved.has(event.uid)} sharing={sharingUid === event.uid} onSave={() => toggleSaved(event.uid)} onShare={() => shareEvent(event)} />)}
+              {filtered.slice(0, limit).map((event) => <EventCard key={event.uid} event={event} lang={lang} day={day} now={clockNow} saved={saved.has(event.uid)} sharing={sharingUid === event.uid} onSave={() => toggleSaved(event.uid)} onShare={() => shareEvent(event)} />)}
             </div>
             <div className="mobile-event-grid">
               {[0, 1].map((column) => (
                 <div className="mobile-event-column" key={column}>
-                  {filtered.slice(0, limit).filter((_, index) => index % 2 === column).map((event) => <EventCard key={event.uid} event={event} lang={lang} day={day} saved={saved.has(event.uid)} sharing={sharingUid === event.uid} onSave={() => toggleSaved(event.uid)} onShare={() => shareEvent(event)} />)}
+                  {filtered.slice(0, limit).filter((_, index) => index % 2 === column).map((event) => <EventCard key={event.uid} event={event} lang={lang} day={day} now={clockNow} saved={saved.has(event.uid)} sharing={sharingUid === event.uid} onSave={() => toggleSaved(event.uid)} onShare={() => shareEvent(event)} />)}
                 </div>
               ))}
             </div>
@@ -946,11 +1021,11 @@ export default function Home() {
             ) : days.map((calendarDay, dayIndex) => {
               const dayEvents = savedEvents.filter((event) => event.times[dayIndex] && event.times[dayIndex] !== "-");
               return (
-                <section className="calendar-day" key={calendarDay[2]}>
+                <section className={`calendar-day ${eventDayStatus(dayIndex, clockNow)}`} key={calendarDay[2]}>
                   <header><strong>{calendarDay[lang === "en" ? 0 : 1]}</strong><span>{calendarDay[2]}</span><em>{dayEvents.length}</em></header>
                   <div className="calendar-events">
                     {dayEvents.length === 0 ? <p className="calendar-blank">—</p> : dayEvents.map((event) => (
-                      <article key={`${event.uid}-${dayIndex}`} className={`calendar-event category-${normalizeCategory(event.type)}`}>
+                      <article key={`${event.uid}-${dayIndex}`} className={`calendar-event category-${normalizeCategory(event.type)} ${occurrenceHasEnded(event.times[dayIndex], dayIndex, clockNow) ? "is-past" : ""}`}>
                         <div className="calendar-event-top"><span>{categoryMeta[normalizeCategory(event.type)]?.mark || "✳"} {event.times[dayIndex]}</span><button onClick={() => toggleSaved(event.uid)} aria-label={t.remove}>×</button></div>
                         <h3>{event.title}</h3>
                         <p>{event.where !== "-" ? event.where : event.camp}</p>
