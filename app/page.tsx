@@ -45,20 +45,20 @@ const categoryMeta: Record<string, { en: string; zh: string; mark: string }> = {
 const copy = {
   en: {
     navTitle: "PLAYA / 2026",
-    navSub: "The bilingual field guide",
+    navSub: "Black Rock City field guide",
     search: "Search events, camps, or locations…",
     eyebrow: "COMMUNITY-CURATED · 3,744 MOMENTS IN THE DUST",
     heroA: "FIND YOUR",
     heroB: "NEXT WONDER.",
     intro:
-      "Nine days. Thousands of invitations. One clean guide for following the strange, generous pulse of Black Rock City — in English and Chinese.",
+      "Nine days. Thousands of invitations. One clean guide for following the strange, generous pulse of Black Rock City.",
     updated: "Source updated Aug 27, 2026",
     events: "events",
     days: "days",
-    languages: "languages",
+    languages: "categories",
     saved: "saved",
     myPlaya: "My Playa",
-    planHint: "Your interested list lives only in this browser.",
+    planHint: "Your saved events, arranged across the week. Stored only in this browser.",
     planEmpty: "Star any event to start building your personal playa list.",
     copyList: "Copy list",
     copied: "Copied",
@@ -92,10 +92,10 @@ const copy = {
     updated: "来源更新于 2026 年 8 月 27 日",
     events: "活动",
     days: "天",
-    languages: "语言",
+    languages: "分类",
     saved: "已收藏",
     myPlaya: "我的 Playa",
-    planHint: "你的兴趣清单只保存在此浏览器中。",
+    planHint: "收藏的活动按日期排好，只保存在此浏览器中。",
     planEmpty: "收藏任意活动，开始制作你的个人 Playa 清单。",
     copyList: "复制清单",
     copied: "已复制",
@@ -306,7 +306,7 @@ export default function Home() {
           <dl className="stats">
             <div><dt>3,744</dt><dd>{t.events}</dd></div>
             <div><dt>09</dt><dd>{t.days}</dd></div>
-            <div><dt>02</dt><dd>{t.languages}</dd></div>
+            <div><dt>08</dt><dd>{t.languages}</dd></div>
             <div><dt>{String(saved.size).padStart(2, "0")}</dt><dd>{t.saved}</dd></div>
           </dl>
         </div>
@@ -385,21 +385,25 @@ export default function Home() {
             <div><p>{t.planHint}</p><h2>{t.myPlaya} <span>{saved.size}</span></h2></div>
             <button onClick={() => setPlanOpen(false)} aria-label={t.close}>×</button>
           </div>
-          <div className="plan-list">
+          <div className="plan-calendar">
             {savedEvents.length === 0 ? (
               <div className="plan-empty"><span>☆</span><p>{t.planEmpty}</p></div>
-            ) : savedEvents.map((event) => {
-              const eventDay = event.times.findIndex((time) => time && time !== "-");
+            ) : days.map((calendarDay, dayIndex) => {
+              const dayEvents = savedEvents.filter((event) => event.times[dayIndex] && event.times[dayIndex] !== "-");
               return (
-                <article key={event.uid} className="plan-item">
-                  <div className={`plan-index category-${normalizeCategory(event.type)}`}>{categoryMeta[normalizeCategory(event.type)]?.mark || "✳"}</div>
-                  <div>
-                    <span>{eventDay >= 0 ? `${days[eventDay][lang === "en" ? 0 : 1]} ${days[eventDay][2]} · ${event.times[eventDay]}` : event.camp}</span>
-                    <h3>{event.title}</h3>
-                    <p>{event.where !== "-" ? event.where : event.camp}</p>
+                <section className="calendar-day" key={calendarDay[2]}>
+                  <header><strong>{calendarDay[lang === "en" ? 0 : 1]}</strong><span>{calendarDay[2]}</span><em>{dayEvents.length}</em></header>
+                  <div className="calendar-events">
+                    {dayEvents.length === 0 ? <p className="calendar-blank">—</p> : dayEvents.map((event) => (
+                      <article key={`${event.uid}-${dayIndex}`} className={`calendar-event category-${normalizeCategory(event.type)}`}>
+                        <div className="calendar-event-top"><span>{categoryMeta[normalizeCategory(event.type)]?.mark || "✳"} {event.times[dayIndex]}</span><button onClick={() => toggleSaved(event.uid)} aria-label={t.remove}>×</button></div>
+                        <h3>{event.title}</h3>
+                        <p>{event.where !== "-" ? event.where : event.camp}</p>
+                        <a href={event.link} target="_blank" rel="noreferrer">↗</a>
+                      </article>
+                    ))}
                   </div>
-                  <button onClick={() => toggleSaved(event.uid)} aria-label={t.remove}>×</button>
-                </article>
+                </section>
               );
             })}
           </div>
