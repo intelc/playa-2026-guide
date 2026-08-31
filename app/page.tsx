@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Share2 } from "lucide-react";
 
 type Lang = "en" | "zh";
@@ -81,7 +81,7 @@ const copy = {
     matches: "matches",
     empty: "No events found in this corner of the playa.",
     reset: "Reset filters",
-    loadMore: "Show more",
+    loadingMore: "Loading more events",
     open: "Event details",
     location: "Location",
     savedOnly: "Saved only",
@@ -130,7 +130,7 @@ const copy = {
     matches: "个结果",
     empty: "这片 playa 暂时没有匹配的活动。",
     reset: "重置筛选",
-    loadMore: "显示更多",
+    loadingMore: "正在加载更多活动",
     open: "查看详情",
     location: "地点",
     savedOnly: "只看收藏",
@@ -495,7 +495,20 @@ function EventCard({ event, lang, day, saved, sharing, onSave, onShare }: { even
   const location = event.where !== "-" ? event.where : event.camp;
 
   return (
-    <article className={`event-card category-${category}`}>
+    <article
+      className={`event-card category-${category}`}
+      tabIndex={0}
+      aria-label={`${copy[lang].share}: ${event.title}`}
+      onClick={(clickEvent) => {
+        if ((clickEvent.target as HTMLElement).closest("button, a")) return;
+        onShare();
+      }}
+      onKeyDown={(keyEvent) => {
+        if (keyEvent.target !== keyEvent.currentTarget || (keyEvent.key !== "Enter" && keyEvent.key !== " ")) return;
+        keyEvent.preventDefault();
+        onShare();
+      }}
+    >
       <div className="card-body">
         <div className="card-topline">
           <span className="category-pill"><span aria-hidden="true">{meta.mark}</span>{lang === "en" ? meta.en : meta.zh}</span>
@@ -544,6 +557,7 @@ export default function Home() {
   const [sharingPlan, setSharingPlan] = useState(false);
   const [shareAsset, setShareAsset] = useState<ShareAsset | null>(null);
   const [captionCopied, setCaptionCopied] = useState(false);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
   const t = copy[lang];
 
   useEffect(() => {
@@ -615,6 +629,21 @@ export default function Home() {
   }, [events, query, category, day, savedOnly, saved]);
 
   const savedEvents = useMemo(() => events.filter((event) => saved.has(event.uid)), [events, saved]);
+
+  useEffect(() => {
+    if (limit >= filtered.length) return;
+    const sentinel = loadMoreRef.current;
+    if (!sentinel) return;
+    if (!("IntersectionObserver" in window)) {
+      setLimit(filtered.length);
+      return;
+    }
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) setLimit((current) => Math.min(current + 36, filtered.length));
+    }, { rootMargin: "700px 0px" });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [limit, filtered.length]);
 
   function toggleSaved(uid: string) {
     setSaved((current) => {
@@ -832,7 +861,7 @@ export default function Home() {
                 </div>
               ))}
             </div>
-            {limit < filtered.length && <button className="load-more" onClick={() => setLimit(limit + 36)}>{t.loadMore}<span>{Math.min(36, filtered.length - limit)}</span></button>}
+            {limit < filtered.length && <div ref={loadMoreRef} className="load-more-sentinel" role="status" aria-label={t.loadingMore}><span aria-hidden="true" /></div>}
           </>
         )}
       </section>
