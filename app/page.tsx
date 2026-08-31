@@ -38,6 +38,7 @@ const days = [
 ];
 
 const categoryOrder = ["all", "prty", "arts", "work", "food", "tea", "adlt", "kid", "othr"];
+const websiteUrl = "https://playa.intelchen.com";
 
 const categoryMeta: Record<string, { en: string; zh: string; mark: string }> = {
   all: { en: "All events", zh: "全部活动", mark: "✦" },
@@ -67,6 +68,9 @@ const copy = {
     languages: "categories",
     saved: "saved",
     makeMyList: "Make my Playa list",
+    copyToAgent: "Copy to my agent · 复制给我的 Agent",
+    agentCopied: "Agent context copied!",
+    agentCopiedShort: "Copied!",
     myPlaya: "My Playa",
     planHint: "Your saved events, arranged across the week. Stored only in this browser.",
     planEmpty: "Star any event to start building your personal playa list.",
@@ -116,6 +120,9 @@ const copy = {
     languages: "分类",
     saved: "已收藏",
     makeMyList: "制作我的 Playa 清单",
+    copyToAgent: "复制给我的 Agent · Copy to my agent",
+    agentCopied: "已复制 Agent 上下文！",
+    agentCopiedShort: "已复制！",
     myPlaya: "我的 Playa",
     planHint: "收藏的活动按日期排好，只保存在此浏览器中。",
     planEmpty: "收藏任意活动，开始制作你的个人 Playa 清单。",
@@ -213,6 +220,37 @@ async function copyToClipboard(text: string) {
   textarea.select();
   document.execCommand("copy");
   textarea.remove();
+}
+
+function createAgentContext({ lang, query, category, day, origin }: { lang: Lang; query: string; category: string; day: number; origin: string }) {
+  const endpoint = new URL("/api/search", origin);
+  endpoint.searchParams.set("lang", lang);
+  if (query.trim()) endpoint.searchParams.set("q", query.trim());
+  if (category !== "all") endpoint.searchParams.set("category", category);
+  if (day >= 0) endpoint.searchParams.set("day", String(day));
+  const categoryLabel = categoryMeta[category] ? `${categoryMeta[category].en} / ${categoryMeta[category].zh}` : category;
+  const dayLabel = day >= 0 ? `${days[day][0]} / ${days[day][1]} (${days[day][2]})` : "All days / 全部日期";
+
+  return `You are helping someone explore Playa 2026, a bilingual Burning Man / Black Rock City event guide.
+
+Canonical website / 官方网站: ${websiteUrl}
+Callable public search API / 当前可调用的公开搜索 API: ${endpoint.origin}/api/search
+
+Use the API to find live events. It accepts:
+- q: optional text search across title, description, camp, and location
+- lang: en (default) or zh
+- day: 0–8, or a Playa date such as 2026-08-30 (date is also accepted as an alias)
+- category: all, prty, arts, work, food, tea, adlt, kid, or othr
+- limit: 1–100 (default 25), and optional offset: 0–10000
+
+Current visitor context / 当前访客筛选:
+- Language / 语言: ${lang === "en" ? "English / 英文" : "Chinese / 中文"}
+- Search / 搜索: ${query.trim() || "None / 无"}
+- Day / 日期: ${dayLabel}
+- Category / 分类: ${categoryLabel}
+- Ready-to-use search URL: ${endpoint.toString()}
+
+When suggesting an event, preserve its title, time, and location. Cite the event's event.link as the live source for that event, and link back to ${websiteUrl} for discovery. Times and locations can shift on playa, so encourage people to open the event link before heading out. Reply in the visitor's selected language unless they ask otherwise.`;
 }
 
 function downloadShareAsset(asset: ShareAsset) {
@@ -552,6 +590,7 @@ export default function Home() {
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [planOpen, setPlanOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [agentCopied, setAgentCopied] = useState(false);
   const [sharingUid, setSharingUid] = useState<string | null>(null);
   const [sharingPlan, setSharingPlan] = useState(false);
   const [shareAsset, setShareAsset] = useState<ShareAsset | null>(null);
@@ -677,6 +716,12 @@ export default function Home() {
     window.setTimeout(() => setCopied(false), 1600);
   }
 
+  async function copyAgentContext() {
+    await copyToClipboard(createAgentContext({ lang, query, category, day, origin: window.location.origin }));
+    setAgentCopied(true);
+    window.setTimeout(() => setAgentCopied(false), 1800);
+  }
+
   function clearSaved() {
     setSaved(new Set());
     window.localStorage.setItem("playa-saved", "[]");
@@ -775,6 +820,9 @@ export default function Home() {
             <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t.search} aria-label={t.search} />
           </label>
           <button className="saved-nav" onClick={() => setPlanOpen(true)}>★ {saved.size}</button>
+          <button className="agent-nav" onClick={copyAgentContext} aria-live="polite" aria-label={t.copyToAgent}>
+            <span aria-hidden="true">✦</span><strong>{agentCopied ? t.agentCopiedShort : "Agent"}</strong>
+          </button>
           <button className="language-toggle" onClick={() => setLang(lang === "en" ? "zh" : "en")} aria-label="Switch language">
             <span className={lang === "en" ? "active" : ""}>EN</span><span className={lang === "zh" ? "active" : ""}>中</span>
           </button>
@@ -790,6 +838,9 @@ export default function Home() {
           <p className="hero-intro">{t.intro}</p>
           <div className="hero-entry-actions">
             <button className="hero-cta" onClick={enterPlaya}>{t.makeMyList}</button>
+            <button className="agent-copy-cta" onClick={copyAgentContext} aria-live="polite">
+              <span aria-hidden="true">✦</span>{agentCopied ? t.agentCopied : t.copyToAgent}
+            </button>
             <div className="source-stamp"><span />{t.updated}</div>
           </div>
           <dl className="stats">

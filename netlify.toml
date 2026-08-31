@@ -9,6 +9,12 @@
   status = 200
   force = true
 
+[[redirects]]
+  from = "/api/search"
+  to = "/.netlify/functions/search"
+  status = 200
+  force = true
+
 [[headers]]
   for = "/assets/*"
   [headers.values]

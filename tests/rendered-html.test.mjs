@@ -1,91 +1,44 @@
 import assert from "node:assert/strict";
-import { access, readFile, readdir } from "node:fs/promises";
 import test from "node:test";
+import {
+  SearchInputError,
+  filterEvents,
+  parseSearchOptions,
+} from "../app/api/events-data.ts";
 
-const developmentPreviewMeta =
-  /<meta(?=[^>]*\bname=["']codex-preview["'])(?=[^>]*\bcontent=["']development["'])[^>]*>/i;
-const templateRoot = new URL("../", import.meta.url);
-const previewRoot = new URL("../app/_sites-preview/", import.meta.url);
+const events = [
+  {
+    uid: "sunrise-1", title: "Sunrise music", description: "Ambient art at dawn", type: "arts",
+    camp: "Dawn Camp", where: "6:30 & E", extra: "", link: "https://example.com/sunrise",
+    times: ["06:00", "-", "-", "-", "-", "-", "-", "-", "-"],
+  },
+  {
+    uid: "tea-1", title: "Tea ceremony", description: "A quiet place", type: "茶饮",
+    camp: "Tea House", where: "Center Camp", extra: "", link: "https://example.com/tea",
+    times: ["-", "14:00", "-", "-", "-", "-", "-", "-", "-"],
+  },
+];
 
-async function render() {
-  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
-  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
-  const { default: worker } = await import(workerUrl.href);
-
-  return worker.fetch(
-    new Request("http://localhost/", {
-      headers: { accept: "text/html" },
-    }),
-    {
-      ASSETS: {
-        fetch: async () => new Response("Not found", { status: 404 }),
-      },
-    },
-    {
-      waitUntil() {},
-      passThroughOnException() {},
-    },
-  );
-}
-
-test("server-renders the starter loading skeleton", async () => {
-  const response = await render();
-  assert.equal(response.status, 200);
-  assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
-
-  const html = await response.text();
-  assert.match(html, developmentPreviewMeta);
-  assert.match(html, /<title>Your site is taking shape<\/title>/i);
-  assert.match(html, /Building your site/);
-  assert.match(html, /Your site is taking shape/);
-  assert.match(
-    html,
-    /Your first version will appear here automatically when it’s ready\./,
-  );
-  assert.doesNotMatch(html, /Codex/);
-  assert.match(html, /react-loading-skeleton/);
-  assert.match(html, /role="status"/);
+test("search options accept the documented date, filter, and pagination parameters", () => {
+  const options = parseSearchOptions(new URLSearchParams("lang=zh&day=2026-08-30&category=arts&q=sunrise&limit=10&offset=2"));
+  assert.deepEqual(options, { q: "sunrise", lang: "zh", category: "arts", day: 0, limit: 10, offset: 2 });
+  assert.equal(parseSearchOptions(new URLSearchParams("date=2026-09-07")).day, 8);
+  assert.equal(parseSearchOptions(new URLSearchParams("day=9.7")).day, 8);
 });
 
-test("keeps the loading skeleton scoped and disposable", async () => {
-  const [preview, css, page, layout, packageJson, files] = await Promise.all([
-    readFile(new URL("SkeletonPreview.tsx", previewRoot), "utf8"),
-    readFile(new URL("preview.css", previewRoot), "utf8"),
-    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../package.json", import.meta.url), "utf8"),
-    readdir(previewRoot),
-  ]);
+test("search rejects invalid public API input instead of coercing it", () => {
+  for (const query of ["lang=fr", "day=9", "category=music", "limit=101", "offset=-1", "day=0&date=1"]) {
+    assert.throws(() => parseSearchOptions(new URLSearchParams(query)), SearchInputError, query);
+  }
+});
 
-  assert.deepEqual(files.sort(), ["SkeletonPreview.tsx", "preview.css"]);
-  assert.match(preview, /from "react-loading-skeleton"/);
-  assert.match(preview, /baseColor="#eceae7"/);
-  assert.match(preview, /highlightColor="#f9f8f6"/);
-  assert.match(preview, /duration=\{2\.8\}/);
-  assert.match(preview, /sites-skeleton-search-placeholder/);
-  assert.match(packageJson, /"react-loading-skeleton": "3\.5\.0"/);
-
-  const shellIndex = preview.indexOf('className="sites-skeleton-shell"');
-  const statusIndex = preview.indexOf('className="sites-skeleton-status"');
-  assert.ok(shellIndex >= 0 && statusIndex > shellIndex);
-  assert.match(css, /position:\s*fixed/);
-  assert.match(css, /inset:\s*0/);
-  assert.match(css, /opacity:\s*0\.52/);
-  assert.match(css, /prefers-reduced-motion:\s*reduce/);
-  assert.doesNotMatch(css, /#020617|canvas|pets|progress/i);
-  assert.doesNotMatch(
-    preview,
-    /loading-spinner|status-mark|status-progress|canvas|cookie|random/i,
+test("search filtering uses the same category aliases, query fields, and day availability as the UI", () => {
+  assert.deepEqual(
+    filterEvents(events, { q: "dawn", category: "arts", day: 0 }).map((event) => event.uid),
+    ["sunrise-1"],
   );
-
-  assert.match(page, /export const metadata:\s*Metadata/);
-  assert.match(page, /"codex-preview": "development"/);
-  assert.match(page, /<SkeletonPreview \/>/);
-  assert.match(layout, /title:\s*"Starter Project"/);
-  assert.doesNotMatch(layout, /codex-preview|_sites-preview|themeColor|\bViewport\b/);
-  assert.doesNotMatch(css, /(^|\s)(html|body)\s*\{/m);
-
-  await assert.rejects(
-    access(new URL("public/_sites-preview", templateRoot)),
+  assert.deepEqual(
+    filterEvents(events, { q: "", category: "tea", day: 1 }).map((event) => event.uid),
+    ["tea-1"],
   );
 });
